@@ -1,12 +1,12 @@
 import streamlit as st
 import requests
-import pandas as pd
-from datetime import datetime, date
 import random
+import time
 import re
+from datetime import date, datetime
 
 # =========================================================
-# NUTRICOACH — POLISHED MVP
+# PAGE
 # =========================================================
 
 st.set_page_config(
@@ -16,242 +16,405 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# -------------------------
+# =========================================================
 # STYLE
-# -------------------------
+# =========================================================
+
 st.markdown("""
 <style>
-    .stApp {
-        background: #f6f8fb;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.stApp {
+    background:
+        radial-gradient(circle at 10% 0%, rgba(91, 196, 139, .12), transparent 28%),
+        radial-gradient(circle at 90% 5%, rgba(96, 165, 250, .10), transparent 25%),
+        #08110e;
+    color: #f4f7f5;
+}
+
+.block-container {
+    max-width: 1200px;
+    padding-top: 1.2rem;
+    padding-bottom: 5rem;
+}
+
+h1, h2, h3 {
+    letter-spacing: -0.04em;
+}
+
+h1 {
+    font-weight: 800;
+}
+
+h2 {
+    font-weight: 750;
+}
+
+h3 {
+    font-weight: 700;
+}
+
+.hero {
+    padding: 28px;
+    border-radius: 28px;
+    background:
+        linear-gradient(135deg, rgba(35, 75, 58, .95), rgba(12, 31, 25, .98));
+    border: 1px solid rgba(150, 220, 185, .15);
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    margin-bottom: 20px;
+}
+
+.hero-title {
+    font-size: 38px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.hero-sub {
+    color: #b8cbc1;
+    font-size: 15px;
+}
+
+.card {
+    background: rgba(18, 30, 25, .88);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 22px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.16);
+}
+
+.small-card {
+    background: rgba(18, 30, 25, .78);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 18px;
+    padding: 16px;
+    min-height: 110px;
+}
+
+.card-title {
+    font-size: 17px;
+    font-weight: 750;
+    margin-bottom: 8px;
+}
+
+.muted {
+    color: #91a59b;
+}
+
+.big-number {
+    font-size: 30px;
+    font-weight: 800;
+}
+
+.green {
+    color: #69df9c;
+}
+
+.blue {
+    color: #74b9ff;
+}
+
+.orange {
+    color: #ffbd70;
+}
+
+.purple {
+    color: #c6a4ff;
+}
+
+.progress-track {
+    height: 10px;
+    width: 100%;
+    border-radius: 99px;
+    background: #18251f;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #56d58e, #a3f2bd);
+}
+
+.ring {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    background: conic-gradient(#69df9c var(--progress), #1a2822 0);
+    position: relative;
+}
+
+.ring::after {
+    content: "";
+    width: 118px;
+    height: 118px;
+    background: #101c17;
+    border-radius: 50%;
+    position: absolute;
+}
+
+.ring-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+}
+
+.ring-number {
+    font-size: 27px;
+    font-weight: 800;
+}
+
+.ring-label {
+    font-size: 11px;
+    color: #91a59b;
+}
+
+.coach {
+    background:
+        linear-gradient(135deg, rgba(42, 78, 62, .95), rgba(20, 35, 29, .96));
+    border: 1px solid rgba(105,223,156,.22);
+    border-radius: 24px;
+    padding: 23px;
+    box-shadow: 0 15px 50px rgba(0,0,0,.2);
+}
+
+.coach-title {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.coach-action {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 10px 0;
+}
+
+.chip {
+    display: inline-block;
+    padding: 6px 11px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.07);
+    color: #c9d7d0;
+    font-size: 12px;
+    margin: 2px;
+}
+
+.meal {
+    background: #111e18;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 18px;
+    padding: 17px;
+    margin-bottom: 10px;
+}
+
+.meal-name {
+    font-weight: 750;
+    font-size: 16px;
+}
+
+.meal-food {
+    color: #a8bbb1;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.nav-spacer {
+    height: 4px;
+}
+
+div[data-testid="stButton"] > button {
+    border-radius: 13px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: #14221c;
+    color: #edf5f0;
+    font-weight: 650;
+    min-height: 42px;
+    transition: .2s ease;
+}
+
+div[data-testid="stButton"] > button:hover {
+    border-color: rgba(105,223,156,.45);
+    background: #1a2d24;
+    transform: translateY(-1px);
+}
+
+div[data-testid="stButton"] > button[kind="primary"] {
+    background: linear-gradient(135deg, #42c97e, #6de39c);
+    color: #06110b;
+    border: none;
+}
+
+.stTextInput input,
+.stNumberInput input,
+.stSelectbox div[data-baseweb="select"],
+.stTextArea textarea {
+    background: #111e18 !important;
+    border-color: rgba(255,255,255,.08) !important;
+    color: white !important;
+    border-radius: 12px !important;
+}
+
+div[data-testid="stMetric"] {
+    background: #111e18;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 18px;
+    padding: 14px;
+}
+
+hr {
+    border-color: rgba(255,255,255,.08);
+}
+
+[data-testid="stTabs"] button {
+    font-weight: 650;
+}
+
+@media (max-width: 700px) {
     .block-container {
-        max-width: 1250px;
-        padding-top: 1rem;
-        padding-bottom: 4rem;
+        padding: .8rem .7rem 5rem;
     }
 
     .hero {
-        background: linear-gradient(135deg, #111827, #263449);
-        color: white;
-        padding: 28px;
-        border-radius: 24px;
-        margin-bottom: 18px;
+        padding: 20px;
+        border-radius: 22px;
     }
 
-    .hero h1 {
-        margin: 0;
-        font-size: 38px;
-    }
-
-    .hero p {
-        color: #d1d5db;
-        margin-top: 8px;
-        font-size: 16px;
+    .hero-title {
+        font-size: 28px;
     }
 
     .card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 16px;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.04);
-    }
-
-    .coach {
-        background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
-        border: 1px solid #bbf7d0;
-        border-radius: 22px;
-        padding: 24px;
-        margin: 15px 0 22px 0;
-    }
-
-    .coach h2 {
-        margin-top: 0;
-    }
-
-    .big-number {
-        font-size: 30px;
-        font-weight: 800;
-        margin: 0;
-    }
-
-    .muted {
-        color: #6b7280;
-        font-size: 14px;
-    }
-
-    .pill {
-        display: inline-block;
-        padding: 5px 10px;
-        border-radius: 999px;
-        background: #eef2ff;
-        font-size: 12px;
-        margin-right: 5px;
-    }
-
-    .meal {
-        background: white;
-        border: 1px solid #e5e7eb;
-        padding: 17px;
+        padding: 16px;
         border-radius: 18px;
-        margin-bottom: 12px;
     }
 
-    .meal-title {
-        font-size: 18px;
-        font-weight: 750;
+    .ring {
+        width: 125px;
+        height: 125px;
     }
 
-    .nav-label {
-        text-align: center;
-        font-weight: 700;
-        font-size: 14px;
+    .ring::after {
+        width: 98px;
+        height: 98px;
     }
-
-    div[data-testid="stMetric"] {
-        background: white;
-        padding: 12px;
-        border-radius: 16px;
-        border: 1px solid #e5e7eb;
-    }
-
-    @media (max-width: 700px) {
-        .block-container {
-            padding: 0.7rem;
-        }
-
-        .hero h1 {
-            font-size: 29px;
-        }
-
-        .hero {
-            padding: 20px;
-            border-radius: 20px;
-        }
-
-        .card {
-            padding: 15px;
-            border-radius: 17px;
-        }
-    }
+}
 </style>
 """, unsafe_allow_html=True)
 
-
 # =========================================================
-# SESSION STATE
-# =========================================================
-
-def init_state():
-    defaults = {
-        "page": "Today",
-        "profile": {},
-        "targets": {},
-        "food_log": [],
-        "water_glasses": 0,
-        "water_target": 8,
-        "meal_done": {},
-        "weight_history": [],
-        "waist_history": [],
-        "workout_history": [],
-        "body_photos": {},
-        "diet_cycle": 1,
-        "diet_plan": [],
-        "coach_message": "",
-    }
-
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-
-init_state()
-
-
-# =========================================================
-# HELPERS
+# STATE
 # =========================================================
 
-def safe_float(value, default=0):
-    try:
-        return float(value)
-    except:
-        return default
+TODAY = date.today().isoformat()
 
+DEFAULT_PROFILE = {
+    "age": 22,
+    "sex": "Male",
+    "height": 170.0,
+    "weight": 65.0,
+    "activity": "Moderately Active",
+    "diet": "Vegetarian",
+    "budget": "Medium",
+    "body_type": "Average",
+    "goal": "General Fitness",
+}
 
-def clean_number(value):
-    return round(safe_float(value), 1)
+if "profile" not in st.session_state:
+    st.session_state.profile = DEFAULT_PROFILE.copy()
 
+if "targets" not in st.session_state:
+    st.session_state.targets = {}
 
-def today_string():
-    return date.today().isoformat()
+if "food_log" not in st.session_state:
+    st.session_state.food_log = []
 
+if "water" not in st.session_state:
+    st.session_state.water = 0
 
-def profile_ready():
-    required = ["age", "sex", "height", "weight", "activity", "diet", "goal"]
-    return all(k in st.session_state.profile for k in required)
+if "weight_history" not in st.session_state:
+    st.session_state.weight_history = []
 
+if "waist_history" not in st.session_state:
+    st.session_state.waist_history = []
 
-def current_totals():
-    totals = {
-        "calories": 0,
-        "protein": 0,
-        "carbs": 0,
-        "fat": 0,
-        "fiber": 0,
-        "vitamin_a": 0,
-        "vitamin_c": 0,
-        "vitamin_d": 0,
-        "calcium": 0,
-        "iron": 0,
-        "magnesium": 0,
-        "potassium": 0,
-        "zinc": 0,
-    }
+if "body_history" not in st.session_state:
+    st.session_state.body_history = []
 
-    for item in st.session_state.food_log:
-        for key in totals:
-            totals[key] += safe_float(item.get(key, 0))
+if "workout_history" not in st.session_state:
+    st.session_state.workout_history = []
 
-    return {k: round(v, 1) for k, v in totals.items()}
+if "meal_status" not in st.session_state:
+    st.session_state.meal_status = {}
 
+if "meal_timers" not in st.session_state:
+    st.session_state.meal_timers = {}
 
-def remaining_targets():
-    totals = current_totals()
-    targets = st.session_state.targets
+if "supplements" not in st.session_state:
+    st.session_state.supplements = {}
 
-    return {
-        key: round(max(0, safe_float(targets.get(key, 0)) - totals.get(key, 0)), 1)
-        for key in ["calories", "protein", "carbs", "fat", "fiber"]
-    }
+if "diet_plan" not in st.session_state:
+    st.session_state.diet_plan = None
 
+if "diet_cycle" not in st.session_state:
+    st.session_state.diet_cycle = 1
 
-def percent(current, target):
-    if target <= 0:
-        return 0
-    return min(100, max(0, current / target * 100))
+if "photos" not in st.session_state:
+    st.session_state.photos = []
 
+if "page" not in st.session_state:
+    st.session_state.page = "Today"
+
+if "food_search" not in st.session_state:
+    st.session_state.food_search = ""
 
 # =========================================================
-# CALORIE / MACRO CALCULATOR
+# DAILY RESET
 # =========================================================
 
-def calculate_targets(age, sex, height, weight, activity, goal):
+if "state_date" not in st.session_state:
+    st.session_state.state_date = TODAY
+
+if st.session_state.state_date != TODAY:
+    st.session_state.state_date = TODAY
+    st.session_state.food_log = []
+    st.session_state.water = 0
+    st.session_state.meal_status = {}
+    st.session_state.meal_timers = {}
+    st.session_state.supplements = {}
+
+# =========================================================
+# CALCULATOR
+# =========================================================
+
+def calculate_targets(profile):
+    age = float(profile["age"])
+    weight = float(profile["weight"])
+    height = float(profile["height"])
+    sex = profile["sex"]
+
     if sex == "Male":
-        bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
     else:
-        bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
 
-    activity_factor = {
+    activity = {
         "Sedentary": 1.20,
         "Lightly Active": 1.375,
         "Moderately Active": 1.55,
         "Very Active": 1.725,
     }
 
-    tdee = bmr * activity_factor.get(activity, 1.2)
+    tdee = bmr * activity.get(profile["activity"], 1.55)
 
     adjustments = {
         "Fat Loss": -400,
@@ -264,34 +427,31 @@ def calculate_targets(age, sex, height, weight, activity, goal):
         "General Fitness": 0,
     }
 
-    calories = tdee + adjustments.get(goal, 0)
+    calories = tdee + adjustments.get(profile["goal"], 0)
 
-    # Conservative floor for this MVP.
-    if sex == "Male":
-        calories = max(calories, 1500)
-    else:
-        calories = max(calories, 1300)
+    # Avoid presenting an aggressively low target.
+    calories = max(calories, 1500 if sex == "Male" else 1300)
 
-    if goal in ["Muscle Gain", "Strength", "Calisthenics"]:
-        protein_factor = 1.8
-    elif goal in [
+    if profile["goal"] in ["Muscle Gain", "Strength", "Calisthenics"]:
+        protein = weight * 1.8
+    elif profile["goal"] in [
         "Fat Loss",
         "Recomposition",
         "Aesthetic Body",
         "Greek Body",
     ]:
-        protein_factor = 1.7
+        protein = weight * 1.7
     else:
-        protein_factor = 1.6
+        protein = weight * 1.6
 
-    protein = weight * protein_factor
     fat = weight * 0.8
-
-    remaining_calories = calories - (protein * 4) - (fat * 9)
-    carbs = max(80, remaining_calories / 4)
-
     fiber = calories / 1000 * 14
-    water_liters = weight * 0.035
+    water_ml = weight * 35
+
+    protein_calories = protein * 4
+    fat_calories = fat * 9
+
+    carbs = max((calories - protein_calories - fat_calories) / 4, 0)
 
     return {
         "bmr": round(bmr),
@@ -301,401 +461,443 @@ def calculate_targets(age, sex, height, weight, activity, goal):
         "carbs": round(carbs),
         "fat": round(fat),
         "fiber": round(fiber),
-        "water_liters": round(water_liters, 1),
-        "water_glasses": max(1, round(water_liters / 0.25)),
+        "water_ml": round(water_ml),
+        "water_glasses": max(1, round(water_ml / 250)),
     }
 
 
+st.session_state.targets = calculate_targets(st.session_state.profile)
+
 # =========================================================
-# USDA API
+# HELPERS
 # =========================================================
 
-def get_usda_key():
-    try:
-        return st.secrets["FDC_API_KEY"]
-    except:
-        return None
-
-
-def search_usda(query, page_size=8):
-    key = get_usda_key()
-
-    if not key:
-        return None, "USDA API key not found."
-
-    url = "https://api.nal.usda.gov/fdc/v1/foods/search"
-
-    params = {
-        "api_key": key,
-        "query": query,
-        "pageSize": page_size,
+def total_nutrition():
+    totals = {
+        "calories": 0,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 0,
+        "fiber": 0,
+        "vitamin_a": 0,
+        "vitamin_c": 0,
+        "calcium": 0,
+        "iron": 0,
+        "magnesium": 0,
+        "potassium": 0,
     }
 
-    try:
-        response = requests.get(url, params=params, timeout=15)
+    for item in st.session_state.food_log:
+        for key in totals:
+            totals[key] += float(item.get(key, 0) or 0)
 
-        if response.status_code != 200:
-            return None, f"USDA error: {response.status_code}"
-
-        return response.json().get("foods", []), None
-
-    except Exception as e:
-        return None, f"Connection error: {e}"
+    return totals
 
 
-def get_nutrients(food):
+def remaining_targets():
+    totals = total_nutrition()
+    targets = st.session_state.targets
+
+    return {
+        "calories": max(targets["calories"] - totals["calories"], 0),
+        "protein": max(targets["protein"] - totals["protein"], 0),
+        "carbs": max(targets["carbs"] - totals["carbs"], 0),
+        "fat": max(targets["fat"] - totals["fat"], 0),
+        "fiber": max(targets["fiber"] - totals["fiber"], 0),
+    }
+
+
+def progress_percent(value, target):
+    if target <= 0:
+        return 0
+    return min(value / target * 100, 100)
+
+
+def progress_bar(value, target):
+    pct = progress_percent(value, target)
+
+    st.markdown(
+        f"""
+        <div class="progress-track">
+            <div class="progress-fill" style="width:{pct}%"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def nutrition_dict_from_usda(food, grams):
     nutrients = {}
 
     for nutrient in food.get("foodNutrients", []):
-        name = nutrient.get("nutrientName")
-        value = nutrient.get("value", 0)
+        name = nutrient.get("nutrientName", "")
+        value = nutrient.get("value", 0) or 0
+        nutrients[name] = value
 
-        if name:
-            nutrients[name] = safe_float(value)
+    multiplier = grams / 100
+
+    def get(*names):
+        for name in names:
+            if name in nutrients:
+                return float(nutrients[name]) * multiplier
+        return 0
 
     return {
-        "calories": nutrients.get("Energy", 0),
-        "protein": nutrients.get("Protein", 0),
-        "carbs": nutrients.get("Carbohydrate, by difference", 0),
-        "fat": nutrients.get("Total lipid (fat)", 0),
-        "fiber": nutrients.get("Fiber, total dietary", 0),
-        "vitamin_a": nutrients.get("Vitamin A, RAE", 0),
-        "vitamin_c": nutrients.get(
-            "Vitamin C, total ascorbic acid", 0
-        ),
-        "vitamin_d": nutrients.get("Vitamin D (D2 + D3)", 0),
-        "calcium": nutrients.get("Calcium, Ca", 0),
-        "iron": nutrients.get("Iron, Fe", 0),
-        "magnesium": nutrients.get("Magnesium, Mg", 0),
-        "potassium": nutrients.get("Potassium, K", 0),
-        "zinc": nutrients.get("Zinc, Zn", 0),
+        "calories": get("Energy"),
+        "protein": get("Protein"),
+        "carbs": get("Carbohydrate, by difference"),
+        "fat": get("Total lipid (fat)"),
+        "fiber": get("Fiber, total dietary"),
+        "vitamin_a": get("Vitamin A, RAE"),
+        "vitamin_c": get("Vitamin C, total ascorbic acid"),
+        "calcium": get("Calcium, Ca"),
+        "iron": get("Iron, Fe"),
+        "magnesium": get("Magnesium, Mg"),
+        "potassium": get("Potassium, K"),
     }
 
 
-def detect_piece_weight(food_name):
+def estimate_piece_weight(food_name):
     name = food_name.lower()
 
-    mapping = {
+    pieces = {
         "egg": 50,
         "banana": 118,
         "apple": 182,
         "orange": 130,
         "roti": 40,
         "chapati": 40,
+        "bread": 28,
+        "slice": 28,
     }
 
-    for item, grams in mapping.items():
-        if item in name:
-            return grams
+    for keyword, weight in pieces.items():
+        if keyword in name:
+            return weight
 
     return 100
 
 
-# =========================================================
-# FOOD RECOMMENDATION ENGINE
-# =========================================================
+def search_usda(query):
+    try:
+        api_key = st.secrets["FDC_API_KEY"]
+    except Exception:
+        return None, "USDA API key not found."
 
-FOOD_OPTIONS = {
-    "Vegetarian": [
-        "curd",
-        "paneer",
-        "milk",
-        "lentils",
-        "chickpeas",
-        "roti",
-        "rice",
-        "oats",
-        "banana",
-        "vegetables",
-    ],
-    "Vegan": [
-        "soy chunks",
-        "tofu",
-        "lentils",
-        "chickpeas",
-        "beans",
-        "rice",
-        "roti",
-        "oats",
-        "banana",
-        "vegetables",
-    ],
-    "Non-vegetarian": [
-        "eggs",
-        "chicken",
-        "curd",
-        "rice",
-        "roti",
-        "oats",
-        "banana",
-        "lentils",
-        "vegetables",
-    ],
-}
+    url = "https://api.nal.usda.gov/fdc/v1/foods/search"
+
+    params = {
+        "api_key": api_key,
+        "query": query,
+        "pageSize": 8,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=15)
+
+        if response.status_code != 200:
+            return None, f"USDA request failed: {response.status_code}"
+
+        data = response.json()
+        return data.get("foods", []), None
+
+    except Exception as e:
+        return None, str(e)
 
 
-def coach_recommendation():
-    if not profile_ready():
-        return (
-            "Complete your profile first. Then I'll calculate your "
-            "calorie, protein, fiber and hydration gaps."
-        )
+def make_food_item(food, grams):
+    nutrition = nutrition_dict_from_usda(food, grams)
 
-    rem = remaining_targets()
-    diet = st.session_state.profile.get("diet", "Vegetarian")
-
-    protein_gap = rem["protein"]
-    calorie_gap = rem["calories"]
-
-    if protein_gap > 40:
-        if diet == "Vegan":
-            option = (
-                "80g soy chunks + rice + vegetables"
-            )
-        elif diet == "Vegetarian":
-            option = (
-                "200g curd + 100g roasted chana + 2 rotis"
-            )
-        else:
-            option = (
-                "150g chicken + 2 rotis + salad"
-            )
-
-        return (
-            f"**You're about {protein_gap:.0f}g short on protein.** "
-            f"You have roughly {calorie_gap:.0f} kcal remaining.\n\n"
-            f"### 🥗 Your next best action\n"
-            f"Try: **{option}**\n\n"
-            f"**Why:** protein is currently your largest nutrition gap."
-        )
-
-    if rem["fiber"] > 8:
-        return (
-            f"You're only about {protein_gap:.0f}g away from your "
-            f"protein target, but fiber is still low.\n\n"
-            "**Next action:** add vegetables, fruit, oats, beans or "
-            "whole grains to your next meal."
-        )
-
-    if calorie_gap > 500:
-        return (
-            f"You have about **{calorie_gap:.0f} kcal** left today.\n\n"
-            "**Next action:** build a balanced meal around protein + "
-            "a carbohydrate source + vegetables."
-        )
-
-    if calorie_gap < 150:
-        return (
-            "You're close to your calorie target. Focus on hydration "
-            "and a protein-rich option if you're still hungry."
-        )
-
-    return (
-        "Your nutrition is looking fairly balanced.\n\n"
-        "Keep your next meal protein-focused and continue tracking "
-        "water."
-    )
+    return {
+        "name": food.get("description", "Unknown food"),
+        "grams": grams,
+        "fdc_id": food.get("fdcId"),
+        **nutrition,
+    }
 
 
 # =========================================================
 # DIET PLAN
 # =========================================================
 
-BASE_MEALS = {
-    "Vegetarian": [
-        ("Breakfast", "Oats + milk + banana"),
-        ("Lunch", "2 rotis + dal + mixed vegetables + curd"),
-        ("Snack", "Roasted chana + fruit"),
-        ("Dinner", "Paneer + rice + salad"),
-    ],
-    "Vegan": [
-        ("Breakfast", "Oats + soy milk + banana"),
-        ("Lunch", "Rice + dal + vegetables"),
-        ("Snack", "Roasted chana + fruit"),
-        ("Dinner", "Tofu + 2 rotis + salad"),
-    ],
-    "Non-vegetarian": [
-        ("Breakfast", "3 eggs + oats + banana"),
-        ("Lunch", "Chicken + rice + vegetables"),
-        ("Snack", "Curd + roasted chana"),
-        ("Dinner", "Egg bhurji + 2 rotis + salad"),
-    ],
+BREAKFASTS = [
+    "Oats + milk/soy milk + banana + peanut butter",
+    "Vegetable poha + curd",
+    "Paneer/tofu sandwich + fruit",
+    "Besan chilla + curd",
+    "Idli + sambar + fruit",
+    "Vegetable upma + curd",
+    "Overnight oats + banana + seeds",
+    "Moong dal chilla + chutney",
+]
+
+LUNCHES = [
+    "Dal + rice + salad + curd",
+    "Rajma + rice + cucumber salad",
+    "Chole + 2 rotis + salad",
+    "Paneer/tofu + 2 rotis + vegetables",
+    "Dal khichdi + curd + salad",
+    "Soy chunks curry + rice + vegetables",
+    "Mixed dal + roti + seasonal vegetables",
+    "Chana pulao + raita",
+]
+
+SNACKS = [
+    "Roasted chana + fruit",
+    "Curd + banana",
+    "Peanut butter toast",
+    "Fruit + handful of nuts",
+    "Sprouts chaat",
+    "Protein shake + fruit",
+    "Buttermilk + roasted chana",
+    "Peanuts + fruit",
+]
+
+DINNERS = [
+    "Paneer/tofu bhurji + roti + vegetables",
+    "Dal + roti + salad",
+    "Soy chunks + rice + vegetables",
+    "Chole + roti + salad",
+    "Vegetable khichdi + curd",
+    "Paneer/tofu curry + roti",
+    "Dal + rice + mixed vegetables",
+    "Moong dal chilla + curd",
+]
+
+NONVEG_ADDONS = [
+    "2 eggs",
+    "3 eggs",
+    "Chicken breast",
+    "Fish",
+    "Egg bhurji",
+]
+
+VEGAN_REPLACEMENTS = {
+    "milk": "soy milk",
+    "curd": "soy yogurt",
+    "paneer": "tofu",
+    "raita": "soy yogurt",
 }
 
 
-def create_diet_plan(cycle=1):
-    profile = st.session_state.profile
-    diet = profile.get("diet", "Vegetarian")
-    goal = profile.get("goal", "General Fitness")
+def adapt_meal(meal, diet):
+    result = meal
 
-    meals = BASE_MEALS[diet].copy()
+    if diet == "Vegan":
+        for old, new in VEGAN_REPLACEMENTS.items():
+            result = re.sub(old, new, result, flags=re.IGNORECASE)
 
-    alternatives = [
-        ("Breakfast", "Poha + eggs/curd + fruit"),
-        ("Lunch", "Rajma + rice + salad"),
-        ("Snack", "Peanut butter toast + fruit"),
-        ("Dinner", "Dal + roti + vegetables + curd"),
-        ("Breakfast", "Besan chilla + curd"),
-        ("Lunch", "Chole + roti + vegetables"),
-        ("Snack", "Milk/soy milk + banana"),
-        ("Dinner", "Paneer/tofu bowl + rice + salad"),
-    ]
+    if diet == "Non-Vegetarian":
+        if random.random() < 0.45:
+            result += " + " + random.choice(NONVEG_ADDONS)
 
-    random.seed(cycle * 999)
+    return result
+
+
+def generate_diet_plan(cycle=1):
+    seed = cycle * 100 + int(st.session_state.profile["age"])
+    rng = random.Random(seed)
+
+    breakfasts = BREAKFASTS.copy()
+    lunches = LUNCHES.copy()
+    snacks = SNACKS.copy()
+    dinners = DINNERS.copy()
+
+    rng.shuffle(breakfasts)
+    rng.shuffle(lunches)
+    rng.shuffle(snacks)
+    rng.shuffle(dinners)
 
     plan = []
 
-    for day in range(1, 15):
-        day_meals = meals.copy()
-
-        # Create variety across the 14 days.
-        if day > 1:
-            extra = random.sample(alternatives, 2)
-
-            day_meals[0] = extra[0]
-            day_meals[2] = extra[1]
-
-        # Goal-specific wording.
-        if goal in ["Muscle Gain", "Strength", "Calisthenics"]:
-            note = "Higher-protein focus"
-        elif goal in ["Fat Loss", "Aesthetic Body", "Greek Body"]:
-            note = "Protein + volume-focused"
-        else:
-            note = "Balanced fitness day"
+    for day_num in range(1, 15):
+        breakfast = adapt_meal(
+            breakfasts[(day_num - 1) % len(breakfasts)],
+            st.session_state.profile["diet"],
+        )
+        lunch = adapt_meal(
+            lunches[(day_num + cycle) % len(lunches)],
+            st.session_state.profile["diet"],
+        )
+        snack = adapt_meal(
+            snacks[(day_num + cycle * 2) % len(snacks)],
+            st.session_state.profile["diet"],
+        )
+        dinner = adapt_meal(
+            dinners[(day_num + cycle * 3) % len(dinners)],
+            st.session_state.profile["diet"],
+        )
 
         plan.append({
-            "day": day,
-            "note": note,
-            "meals": day_meals,
+            "day": day_num,
+            "breakfast": breakfast,
+            "lunch": lunch,
+            "snack": snack,
+            "dinner": dinner,
         })
 
     return plan
 
 
-def swap_meal(day_index, meal_index):
+if st.session_state.diet_plan is None:
+    st.session_state.diet_plan = generate_diet_plan(
+        st.session_state.diet_cycle
+    )
+
+# =========================================================
+# SMART COACH
+# =========================================================
+
+def coach_message():
+    totals = total_nutrition()
+    remain = remaining_targets()
+    target = st.session_state.targets
     profile = st.session_state.profile
-    diet = profile.get("diet", "Vegetarian")
 
-    choices = [
-        "Oats + fruit + milk/soy milk",
-        "Besan chilla + curd",
-        "Eggs + roti + fruit",
-        "Dal + rice + vegetables",
-        "Chole + roti + salad",
-        "Paneer/tofu + rice + vegetables",
-        "Curd + roasted chana + fruit",
-        "Peanut butter toast + banana",
-    ]
+    protein_gap = remain["protein"]
+    calorie_gap = remain["calories"]
 
-    if diet == "Vegan":
-        choices = [
-            "Oats + soy milk + banana",
-            "Besan chilla + vegetables",
-            "Dal + rice + vegetables",
-            "Chole + roti + salad",
-            "Tofu + rice + vegetables",
-            "Soy chunks + roti + salad",
-            "Roasted chana + fruit",
-        ]
+    if protein_gap > 35:
+        if profile["diet"] == "Vegan":
+            action = "80g soy chunks + rice + vegetables"
+            option = "Vegan option"
+        elif profile["diet"] == "Vegetarian":
+            action = "200g curd + 100g roasted chana + 2 rotis"
+            option = "Vegetarian option"
+        else:
+            action = "200g curd + 2 eggs + 2 rotis"
+            option = "High-protein option"
 
-    if diet == "Non-vegetarian":
-        choices += [
-            "Chicken + rice + vegetables",
-            "Egg bhurji + roti + salad",
-        ]
+        return {
+            "title": "Your next best action",
+            "action": f"You're about {round(protein_gap)}g short on protein.",
+            "recommendation": action,
+            "option": option,
+            "why": "Protein is currently your largest nutrition gap.",
+        }
 
-    current = st.session_state.diet_plan[
-        day_index
-    ]["meals"][meal_index][1]
+    if calorie_gap > 400:
+        return {
+            "title": "Your next best action",
+            "action": f"You have about {round(calorie_gap)} kcal remaining.",
+            "recommendation": "Build your next meal around protein + vegetables + a quality carb.",
+            "option": "Balanced option",
+            "why": "You have enough calorie room for a complete meal.",
+        }
 
-    available = [x for x in choices if x != current]
+    if remain["fiber"] > 7:
+        return {
+            "title": "Your next best action",
+            "action": f"You're about {round(remain['fiber'])}g short on fiber.",
+            "recommendation": "Add fruit + vegetables + dal/beans to your next meal.",
+            "option": "Fiber focus",
+            "why": "Fiber is one of your remaining nutrition gaps.",
+        }
 
-    replacement = random.choice(available)
+    water_gap = max(target["water_glasses"] - st.session_state.water, 0)
 
-    meal_name = st.session_state.diet_plan[
-        day_index
-    ]["meals"][meal_index][0]
+    if water_gap > 2:
+        return {
+            "title": "Your next best action",
+            "action": f"You have {water_gap} glasses of water left.",
+            "recommendation": "Drink one glass now, then spread the rest across the evening.",
+            "option": "Hydration",
+            "why": "Your hydration tracker is behind today's target.",
+        }
 
-    st.session_state.diet_plan[day_index]["meals"][
-        meal_index
-    ] = (meal_name, replacement)
+    return {
+        "title": "You're on track",
+        "action": "Keep your next meal balanced.",
+        "recommendation": "Prioritize protein, vegetables and a sensible carb portion.",
+        "option": "Maintain",
+        "why": "Your tracked nutrition is currently reasonably balanced against your targets.",
+    }
 
 
 # =========================================================
-# AUTOMATIC WORKOUT ENGINE
+# AUTOMATIC WORKOUT
 # =========================================================
 
-def generate_workout():
+def automatic_workout():
     profile = st.session_state.profile
 
-    goal = profile.get("goal", "General Fitness")
-    activity = profile.get("activity", "Moderately Active")
+    goal = profile["goal"]
+    activity = profile["activity"]
 
     if goal == "Muscle Gain":
-        workouts = [
-            ("Full Body Strength", 45, "Moderate"),
-            ("Upper Body + Core", 40, "Moderate"),
-            ("Lower Body Strength", 45, "Moderate"),
+        exercises = [
+            ("Push-ups", "3 × 10–15"),
+            ("Bodyweight Squats", "4 × 12–15"),
+            ("Backpack Rows", "3 × 10–15"),
+            ("Glute Bridges", "3 × 15"),
+            ("Plank", "3 × 30–45 sec"),
         ]
+        title = "Full Body Strength"
 
     elif goal == "Strength":
-        workouts = [
-            ("Full Body Strength", 50, "High"),
-            ("Lower Body + Core", 45, "High"),
-            ("Upper Body Strength", 45, "High"),
+        exercises = [
+            ("Push-ups", "4 × 8–12"),
+            ("Bulgarian Split Squats", "3 × 8–12 / leg"),
+            ("Backpack Rows", "4 × 8–12"),
+            ("Pike Push-ups", "3 × 8–12"),
+            ("Plank", "3 × 45 sec"),
         ]
+        title = "Strength Builder"
 
     elif goal == "Calisthenics":
-        workouts = [
-            ("Calisthenics Push + Core", 40, "Moderate"),
-            ("Calisthenics Pull + Legs", 45, "Moderate"),
-            ("Full Body Calisthenics", 45, "High"),
+        exercises = [
+            ("Push-ups", "4 × 8–15"),
+            ("Bodyweight Squats", "4 × 15"),
+            ("Pike Push-ups", "3 × 8–12"),
+            ("Reverse Lunges", "3 × 10 / leg"),
+            ("Plank", "3 × 45 sec"),
         ]
+        title = "Calisthenics Session"
 
-    elif goal in ["Fat Loss", "Aesthetic Body", "Greek Body"]:
-        workouts = [
-            ("Full Body + Conditioning", 45, "Moderate"),
-            ("Lower Body + Core", 40, "Moderate"),
-            ("Upper Body + Cardio", 45, "Moderate"),
+    elif goal in ["Fat Loss", "Recomposition", "Aesthetic Body", "Greek Body"]:
+        exercises = [
+            ("Brisk Walk", "15 min"),
+            ("Bodyweight Squats", "3 × 15"),
+            ("Push-ups", "3 × 10–15"),
+            ("Reverse Lunges", "3 × 10 / leg"),
+            ("Mountain Climbers", "3 × 30 sec"),
+            ("Plank", "3 × 30–45 sec"),
         ]
+        title = "Fat Loss + Conditioning"
 
     else:
-        workouts = [
-            ("Full Body Fitness", 35, "Light"),
-            ("Walk + Mobility", 40, "Light"),
-            ("Full Body + Core", 35, "Moderate"),
+        exercises = [
+            ("Brisk Walk", "15 min"),
+            ("Bodyweight Squats", "3 × 12–15"),
+            ("Push-ups", "3 × 8–12"),
+            ("Glute Bridges", "3 × 15"),
+            ("Plank", "3 × 30 sec"),
         ]
+        title = "Daily Fitness"
 
     if activity == "Sedentary":
-        workouts = [
-            (name, max(25, duration - 10), intensity)
-            for name, duration, intensity in workouts
-        ]
+        difficulty = "Beginner-friendly"
+    elif activity == "Very Active":
+        difficulty = "Higher volume"
+    else:
+        difficulty = "Moderate"
 
-    index = date.today().weekday() % len(workouts)
-    return workouts[index]
-
-
-def estimated_workout_calories(duration, weight, intensity):
-    factor = {
-        "Light": 4,
-        "Moderate": 6,
-        "High": 8,
-    }.get(intensity, 5)
-
-    return round(duration * weight * factor / 60)
+    return title, difficulty, exercises
 
 
 # =========================================================
 # NAVIGATION
 # =========================================================
 
-st.markdown("""
-<div class="hero">
-    <h1>🥗 NutriCoach</h1>
-    <p>Your personal nutrition, workout and body-progress command center.</p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style="text-align:center;margin-bottom:10px;">
+        <span style="font-size:28px;">🥗</span>
+        <span style="font-size:22px;font-weight:800;">NutriCoach</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 nav_cols = st.columns(5)
 
@@ -707,158 +909,1240 @@ pages = [
     ("👤", "Profile"),
 ]
 
-for col, (icon, label) in zip(nav_cols, pages):
+for col, (icon, name) in zip(nav_cols, pages):
     with col:
         if st.button(
-            f"{icon}\n{label}",
-            key=f"nav_{label}",
+            f"{icon} {name}",
             use_container_width=True,
-            type="primary" if st.session_state.page == label else "secondary",
+            type="primary" if st.session_state.page == name else "secondary",
+            key=f"nav_{name}",
         ):
-            st.session_state.page = label
+            st.session_state.page = name
             st.rerun()
 
+st.markdown("<div class='nav-spacer'></div>", unsafe_allow_html=True)
 
 # =========================================================
-# PROFILE PAGE
+# HOME / TODAY
 # =========================================================
 
-if st.session_state.page == "Profile":
+if st.session_state.page == "Today":
 
-    st.header("👤 Your Personal Profile")
-    st.caption(
-        "Your profile controls your calorie targets, diet plan, "
-        "automatic workouts and coach recommendations."
+    profile = st.session_state.profile
+    targets = st.session_state.targets
+    totals = total_nutrition()
+    coach = coach_message()
+
+    st.markdown(
+        f"""
+        <div class="hero">
+            <div class="hero-title">Good to see you 👋</div>
+            <div class="hero-sub">
+                Your personal fitness dashboard · {profile["goal"]}
+            </div>
+            <div style="margin-top:14px;">
+                <span class="chip">🎯 {profile["goal"]}</span>
+                <span class="chip">🧍 {profile["body_type"]}</span>
+                <span class="chip">🥗 {profile["diet"]}</span>
+                <span class="chip">⚖️ {profile["weight"]:.1f} kg</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    p = st.session_state.profile
+    # Profile summary
+    st.markdown("### 👤 Your Profile")
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric("Age", f'{profile["age"]}')
+    c2.metric("Height", f'{profile["height"]:.0f} cm')
+    c3.metric("Weight", f'{profile["weight"]:.1f} kg')
+    c4.metric("Daily target", f'{targets["calories"]} kcal')
+
+    # Main dashboard
+    left, right = st.columns([1, 1.7])
+
+    with left:
+        calorie_pct = progress_percent(
+            totals["calories"],
+            targets["calories"],
+        )
+
+        st.markdown(
+            f"""
+            <div class="card">
+                <div class="card-title">🔥 Calories</div>
+                <div class="ring" style="--progress:{calorie_pct}%">
+                    <div class="ring-content">
+                        <div class="ring-number">{round(totals["calories"])}</div>
+                        <div class="ring-label">of {targets["calories"]}</div>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-top:12px;">
+                    <span class="muted">
+                        {round(max(targets["calories"] - totals["calories"], 0))}
+                        kcal remaining
+                    </span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with right:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("### 📈 Today's Macros")
+
+        for label, key, color in [
+            ("Protein", "protein", "green"),
+            ("Carbs", "carbs", "blue"),
+            ("Fat", "fat", "orange"),
+            ("Fiber", "fiber", "purple"),
+        ]:
+            value = totals[key]
+            target = targets[key]
+
+            st.markdown(
+                f"""
+                <div style="display:flex;justify-content:space-between;">
+                    <span>{label}</span>
+                    <span class="{color}">
+                        {round(value)} / {round(target)} g
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            progress_bar(value, target)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Coach
+    st.markdown(
+        f"""
+        <div class="coach">
+            <div class="coach-title">🧠 {coach["title"]}</div>
+            <div class="coach-action">{coach["action"]}</div>
+            <div style="font-size:16px;">
+                <b>{coach["option"]}:</b> {coach["recommendation"]}
+            </div>
+            <div class="muted" style="margin-top:10px;">
+                Why: {coach["why"]}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 💧 Hydration")
+
+    water_target = targets["water_glasses"]
+    water_done = st.session_state.water
+    water_pct = progress_percent(water_done, water_target)
+
+    w1, w2, w3 = st.columns([1, 3, 1])
+
+    with w1:
+        if st.button("−", use_container_width=True, key="water_minus"):
+            st.session_state.water = max(0, st.session_state.water - 1)
+            st.rerun()
+
+    with w2:
+        st.markdown(
+            f"""
+            <div style="text-align:center;">
+                <div class="big-number">💧 {water_done}/{water_target}</div>
+                <div class="muted">glasses today</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        progress_bar(water_done, water_target)
+
+    with w3:
+        if st.button("＋", use_container_width=True, key="water_plus"):
+            st.session_state.water += 1
+            st.rerun()
+
+    # Automatic workout preview
+    st.markdown("### 🏋️ Today's Automatic Workout")
+
+    workout_title, difficulty, exercises = automatic_workout()
 
     with st.container():
-        c1, c2 = st.columns(2)
+        st.markdown(
+            f"""
+            <div class="card">
+                <div class="card-title">{workout_title}</div>
+                <span class="chip">⚡ {difficulty}</span>
+                <span class="chip">🎯 {profile["goal"]}</span>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        with c1:
-            age = st.number_input(
-                "Age",
-                min_value=13,
-                max_value=100,
-                value=int(p.get("age", 20)),
+        for exercise, sets in exercises:
+            st.markdown(
+                f"**{exercise}** — <span class='muted'>{sets}</span>",
+                unsafe_allow_html=True,
             )
 
-            sex = st.selectbox(
-                "Sex",
-                ["Male", "Female"],
-                index=0 if p.get("sex", "Male") == "Male" else 1,
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if st.button(
+            "🏁 Mark today's workout complete",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state.workout_history.append({
+                "date": TODAY,
+                "workout": workout_title,
+                "duration": 35,
+                "calories": 180,
+            })
+            st.success("Workout added to your history.")
+
+    # Recent foods
+    st.markdown("### 🍽️ Today's Food")
+
+    if not st.session_state.food_log:
+        st.info("No food logged yet. Go to Food and search your first meal.")
+    else:
+        for item in reversed(st.session_state.food_log[-6:]):
+            st.markdown(
+                f"""
+                <div class="meal">
+                    <div class="meal-name">{item["name"]}</div>
+                    <div class="meal-food">
+                        {item["grams"]:.0f}g ·
+                        {item["calories"]:.0f} kcal ·
+                        {item["protein"]:.1f}g protein ·
+                        {item["carbs"]:.1f}g carbs ·
+                        {item["fat"]:.1f}g fat
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-            height = st.number_input(
-                "Height (cm)",
-                min_value=100.0,
-                max_value=230.0,
-                value=float(p.get("height", 170)),
-            )
+# =========================================================
+# FOOD
+# =========================================================
 
-            weight = st.number_input(
-                "Weight (kg)",
-                min_value=30.0,
-                max_value=250.0,
-                value=float(p.get("weight", 65)),
-            )
+elif st.session_state.page == "Food":
 
-        with c2:
-            activity = st.selectbox(
-                "Activity level",
-                [
-                    "Sedentary",
-                    "Lightly Active",
-                    "Moderately Active",
-                    "Very Active",
-                ],
-                index=[
-                    "Sedentary",
-                    "Lightly Active",
-                    "Moderately Active",
-                    "Very Active",
-                ].index(
-                    p.get("activity", "Moderately Active")
-                ),
-            )
+    profile = st.session_state.profile
+    targets = st.session_state.targets
+    totals = total_nutrition()
+    remain = remaining_targets()
 
-            diet = st.selectbox(
-                "Diet preference",
-                ["Vegetarian", "Vegan", "Non-vegetarian"],
-                index=[
-                    "Vegetarian",
-                    "Vegan",
-                    "Non-vegetarian",
-                ].index(
-                    p.get("diet", "Vegetarian")
-                ),
-            )
-
-            budget = st.selectbox(
-                "Food budget",
-                ["Budget", "Moderate", "Flexible"],
-                index=[
-                    "Budget",
-                    "Moderate",
-                    "Flexible",
-                ].index(
-                    p.get("budget", "Budget")
-                ),
-            )
-
-            body_type = st.selectbox(
-                "Current body type",
-                [
-                    "Slim / Skinny",
-                    "Skinny Fat",
-                    "Average",
-                    "Athletic",
-                    "Muscular",
-                    "Higher Body Fat",
-                ],
-                index=[
-                    "Slim / Skinny",
-                    "Skinny Fat",
-                    "Average",
-                    "Athletic",
-                    "Muscular",
-                    "Higher Body Fat",
-                ].index(
-                    p.get("body_type", "Average")
-                ),
-            )
-
-    goal = st.selectbox(
-        "🎯 Body goal",
-        [
-            "General Fitness",
-            "Calisthenics",
-            "Greek Body",
-            "Aesthetic Body",
-            "Muscle Gain",
-            "Fat Loss",
-            "Strength",
-            "Recomposition",
-        ],
-        index=[
-            "General Fitness",
-            "Calisthenics",
-            "Greek Body",
-            "Aesthetic Body",
-            "Muscle Gain",
-            "Fat Loss",
-            "Strength",
-            "Recomposition",
-        ].index(
-            p.get("goal", "General Fitness")
-        ),
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-title">🍽️ Your Food Command Center</div>
+            <div class="hero-sub">
+                Search food, calculate portions, track meals, follow your plan,
+                and immediately see how every choice changes today's targets.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
+    # -----------------------------------------------------
+    # TARGET STRIP
+    # -----------------------------------------------------
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric("Calories left", f"{round(remain['calories'])} kcal")
+    c2.metric("Protein left", f"{round(remain['protein'])} g")
+    c3.metric("Carbs left", f"{round(remain['carbs'])} g")
+    c4.metric("Fat left", f"{round(remain['fat'])} g")
+
+    # -----------------------------------------------------
+    # USDA SEARCH
+    # -----------------------------------------------------
+
+    st.markdown("## 🔎 Search & Add Food")
+
+    search_col, button_col = st.columns([4, 1])
+
+    with search_col:
+        query = st.text_input(
+            "Search USDA food database",
+            placeholder="Try: egg, rice, paneer, banana, oats...",
+            key="usda_query",
+        )
+
+    with button_col:
+        st.write("")
+        st.write("")
+        search_clicked = st.button(
+            "Search",
+            use_container_width=True,
+            type="primary",
+        )
+
+    if search_clicked and query.strip():
+        foods, error = search_usda(query.strip())
+
+        if error:
+            st.error(error)
+        elif foods:
+            st.session_state.search_results = foods
+        else:
+            st.warning("No USDA foods found.")
+
+    results = st.session_state.get("search_results", [])
+
+    if results:
+        st.markdown("### Choose your food")
+
+        descriptions = [
+            f'{f.get("description", "Unknown")} · {f.get("dataType", "")}'
+            for f in results
+        ]
+
+        selected_index = st.selectbox(
+            "USDA result",
+            range(len(descriptions)),
+            format_func=lambda i: descriptions[i],
+        )
+
+        selected_food = results[selected_index]
+
+        s1, s2, s3 = st.columns([1.3, 1.3, 1])
+
+        with s1:
+            serving_mode = st.selectbox(
+                "Serving",
+                ["Grams", "Pieces"],
+            )
+
+        with s2:
+            if serving_mode == "Grams":
+                amount = st.number_input(
+                    "Amount",
+                    min_value=1.0,
+                    value=100.0,
+                    step=5.0,
+                )
+                grams = amount
+            else:
+                pieces = st.number_input(
+                    "Pieces",
+                    min_value=1.0,
+                    value=1.0,
+                    step=1.0,
+                )
+                grams = pieces * estimate_piece_weight(
+                    selected_food.get("description", "")
+                )
+
+        with s3:
+            st.markdown(
+                f"""
+                <div class="small-card">
+                    <div class="muted">Estimated weight</div>
+                    <div class="big-number">{grams:.0f}g</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        preview = nutrition_dict_from_usda(
+            selected_food,
+            grams,
+        )
+
+        st.markdown("### 🧾 Nutrition for this serving")
+
+        n1, n2, n3, n4, n5 = st.columns(5)
+
+        n1.metric("Calories", f'{preview["calories"]:.0f}')
+        n2.metric("Protein", f'{preview["protein"]:.1f} g')
+        n3.metric("Carbs", f'{preview["carbs"]:.1f} g')
+        n4.metric("Fat", f'{preview["fat"]:.1f} g')
+        n5.metric("Fiber", f'{preview["fiber"]:.1f} g')
+
+        new_remaining = {
+            "calories": max(remain["calories"] - preview["calories"], 0),
+            "protein": max(remain["protein"] - preview["protein"], 0),
+            "carbs": max(remain["carbs"] - preview["carbs"], 0),
+            "fat": max(remain["fat"] - preview["fat"], 0),
+        }
+
+        st.markdown(
+            f"""
+            <div class="card">
+                <div class="card-title">⚡ What this does to today's targets</div>
+                <div class="muted">If you add this serving:</div>
+                <div style="margin-top:12px;">
+                    <span class="chip">
+                        🔥 {new_remaining["calories"]:.0f} kcal left
+                    </span>
+                    <span class="chip">
+                        💪 {new_remaining["protein"]:.1f}g protein left
+                    </span>
+                    <span class="chip">
+                        🍚 {new_remaining["carbs"]:.1f}g carbs left
+                    </span>
+                    <span class="chip">
+                        🥑 {new_remaining["fat"]:.1f}g fat left
+                    </span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.button(
+            "＋ Add this serving to today's food",
+            use_container_width=True,
+            type="primary",
+        ):
+            item = make_food_item(
+                selected_food,
+                grams,
+            )
+
+            st.session_state.food_log.append(item)
+            st.success(f'Added {item["name"]}.')
+
+    # -----------------------------------------------------
+    # PERSONAL CALCULATOR
+    # -----------------------------------------------------
+
+    st.markdown("---")
+    st.markdown("## 🧮 Personal Food Calculator")
+
+    st.caption(
+        "Use this when you ate something that is not in your planned diet. "
+        "Enter the nutrition from the package/label and NutriCoach will calculate "
+        "the effect on today's remaining targets."
+    )
+
+    pc1, pc2 = st.columns(2)
+
+    with pc1:
+        custom_name = st.text_input(
+            "Food name",
+            placeholder="Example: Homemade paneer sandwich",
+        )
+
+        custom_calories = st.number_input(
+            "Calories",
+            min_value=0.0,
+            value=0.0,
+            step=10.0,
+        )
+
+        custom_protein = st.number_input(
+            "Protein (g)",
+            min_value=0.0,
+            value=0.0,
+            step=1.0,
+        )
+
+    with pc2:
+        custom_carbs = st.number_input(
+            "Carbs (g)",
+            min_value=0.0,
+            value=0.0,
+            step=1.0,
+        )
+
+        custom_fat = st.number_input(
+            "Fat (g)",
+            min_value=0.0,
+            value=0.0,
+            step=1.0,
+        )
+
+        custom_fiber = st.number_input(
+            "Fiber (g)",
+            min_value=0.0,
+            value=0.0,
+            step=1.0,
+        )
+
     if st.button(
-        "💾 Save Profile & Calculate Targets",
-        type="primary",
+        "Calculate & Add Custom Food",
         use_container_width=True,
+    ):
+        if not custom_name.strip():
+            st.warning("Enter a food name.")
+        else:
+            st.session_state.food_log.append({
+                "name": custom_name,
+                "grams": 1,
+                "calories": custom_calories,
+                "protein": custom_protein,
+                "carbs": custom_carbs,
+                "fat": custom_fat,
+                "fiber": custom_fiber,
+                "vitamin_a": 0,
+                "vitamin_c": 0,
+                "calcium": 0,
+                "iron": 0,
+                "magnesium": 0,
+                "potassium": 0,
+            })
+            st.success("Custom food added.")
+
+    # -----------------------------------------------------
+    # 14 DAY PLAN
+    # -----------------------------------------------------
+
+    st.markdown("---")
+    st.markdown("## 📅 Your 14-Day Diet")
+
+    p1, p2, p3 = st.columns(3)
+
+    with p1:
+        st.markdown(
+            f"""
+            <div class="small-card">
+                <div class="muted">Current cycle</div>
+                <div class="big-number">Cycle {st.session_state.diet_cycle}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with p2:
+        if st.button(
+            "🔄 Generate New 14 Days",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state.diet_cycle += 1
+            st.session_state.diet_plan = generate_diet_plan(
+                st.session_state.diet_cycle
+            )
+            st.rerun()
+
+    with p3:
+        st.markdown(
+            f"""
+            <div class="small-card">
+                <div class="muted">Diet preference</div>
+                <div class="big-number" style="font-size:20px;">
+                    {profile["diet"]}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    selected_day = st.selectbox(
+        "View day",
+        list(range(1, 15)),
+        format_func=lambda x: f"Day {x}",
+    )
+
+    day_plan = st.session_state.diet_plan[selected_day - 1]
+
+    meal_targets = {
+        "breakfast": (.25, .25),
+        "lunch": (.30, .30),
+        "snack": (.15, .15),
+        "dinner": (.30, .30),
+    }
+
+    meal_labels = {
+        "breakfast": "🌅 Breakfast",
+        "lunch": "☀️ Lunch",
+        "snack": "🍎 Snack",
+        "dinner": "🌙 Dinner",
+    }
+
+    for meal_key in ["breakfast", "lunch", "snack", "dinner"]:
+
+        kcal_pct, protein_pct = meal_targets[meal_key]
+
+        st.markdown(
+            f"""
+            <div class="meal">
+                <div class="meal-name">
+                    {meal_labels[meal_key]}
+                </div>
+                <div class="meal-food">
+                    {day_plan[meal_key]}
+                </div>
+                <div style="margin-top:8px;">
+                    <span class="chip">
+                        ~{round(targets["calories"] * kcal_pct)} kcal
+                    </span>
+                    <span class="chip">
+                        ~{round(targets["protein"] * protein_pct)}g protein
+                    </span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        swap_key = f"swap_{selected_day}_{meal_key}"
+
+        if st.button(
+            f"🔄 Swap {meal_labels[meal_key]}",
+            key=swap_key,
+        ):
+            lists = {
+                "breakfast": BREAKFASTS,
+                "lunch": LUNCHES,
+                "snack": SNACKS,
+                "dinner": DINNERS,
+            }
+
+            new_meal = adapt_meal(
+                random.choice(lists[meal_key]),
+                profile["diet"],
+            )
+
+            st.session_state.diet_plan[selected_day - 1][meal_key] = new_meal
+            st.rerun()
+
+    # -----------------------------------------------------
+    # MEAL TRACKING
+    # -----------------------------------------------------
+
+    st.markdown("---")
+    st.markdown("## ☑️ Meal Tracking")
+
+    today_plan = st.session_state.diet_plan[0]
+
+    for meal_key in ["breakfast", "lunch", "snack", "dinner"]:
+        status_key = f"{TODAY}_{meal_key}"
+
+        checked = st.checkbox(
+            f'{meal_labels[meal_key]} — {today_plan[meal_key]}',
+            value=st.session_state.meal_status.get(
+                status_key,
+                False,
+            ),
+            key=f"check_{meal_key}",
+        )
+
+        st.session_state.meal_status[status_key] = checked
+
+        timer_key = f"{TODAY}_{meal_key}"
+
+        timer_cols = st.columns([1, 1, 3])
+
+        with timer_cols[0]:
+            if st.button(
+                "▶ Start",
+                key=f"start_{meal_key}",
+            ):
+                st.session_state.meal_timers[timer_key] = {
+                    "start": time.time(),
+                    "end": None,
+                }
+
+        with timer_cols[1]:
+            if st.button(
+                "■ Stop",
+                key=f"stop_{meal_key}",
+            ):
+                if timer_key in st.session_state.meal_timers:
+                    st.session_state.meal_timers[timer_key]["end"] = time.time()
+
+        with timer_cols[2]:
+            timer = st.session_state.meal_timers.get(timer_key)
+
+            if timer:
+                end = timer["end"] or time.time()
+                elapsed = int(end - timer["start"])
+                minutes = elapsed // 60
+                seconds = elapsed % 60
+
+                st.caption(
+                    f"⏱ Meal timer: {minutes:02d}:{seconds:02d}"
+                )
+
+    # -----------------------------------------------------
+    # SUPPLEMENTS
+    # -----------------------------------------------------
+
+    st.markdown("---")
+    st.markdown("## 💊 Optional Supplements")
+
+    supplements = [
+        ("Protein powder", "Use when convenient to help meet protein needs."),
+        ("Peanut butter", "Easy calorie and protein addition."),
+        ("Creatine", "Commonly used for strength and training support."),
+        ("Multivitamin", "Optional; does not replace a varied diet."),
+        ("Omega-3", "Optional dietary supplement."),
+        ("Electrolytes", "More relevant around heavy sweating or long sessions."),
+    ]
+
+    for name, description in supplements:
+        key = name.lower().replace(" ", "_")
+        value = st.checkbox(
+            f"{name} — {description}",
+            value=st.session_state.supplements.get(key, False),
+            key=f"supp_{key}",
+        )
+        st.session_state.supplements[key] = value
+
+    # -----------------------------------------------------
+    # FOOD LOG
+    # -----------------------------------------------------
+
+    st.markdown("---")
+    st.markdown("## 📋 Today's Food Log")
+
+    if not st.session_state.food_log:
+        st.info("Nothing logged yet.")
+    else:
+        for i, item in enumerate(st.session_state.food_log):
+            c1, c2 = st.columns([5, 1])
+
+            with c1:
+                st.markdown(
+                    f"""
+                    <div class="meal">
+                        <div class="meal-name">{item["name"]}</div>
+                        <div class="meal-food">
+                            {item["grams"]:.0f}g ·
+                            {item["calories"]:.0f} kcal ·
+                            {item["protein"]:.1f}g protein
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            with c2:
+                if st.button(
+                    "Remove",
+                    key=f"remove_food_{i}",
+                ):
+                    st.session_state.food_log.pop(i)
+                    st.rerun()
+
+    # -----------------------------------------------------
+    # MICRONUTRIENTS
+    # -----------------------------------------------------
+
+    st.markdown("---")
+    st.markdown("## 🧬 Micronutrients")
+
+    micro = total_nutrition()
+
+    m1, m2, m3, m4, m5 = st.columns(5)
+
+    m1.metric("Vitamin A", f'{micro["vitamin_a"]:.0f} µg')
+    m2.metric("Vitamin C", f'{micro["vitamin_c"]:.0f} mg')
+    m3.metric("Calcium", f'{micro["calcium"]:.0f} mg')
+    m4.metric("Iron", f'{micro["iron"]:.1f} mg')
+    m5.metric("Potassium", f'{micro["potassium"]:.0f} mg')
+
+    st.caption(
+        "USDA search values are used where available. Piece-based portions are estimates."
+    )
+
+# =========================================================
+# WORKOUT
+# =========================================================
+
+elif st.session_state.page == "Workout":
+
+    profile = st.session_state.profile
+
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-title">🏋️ Automatic Workout</div>
+            <div class="hero-sub">
+                No exercise selection needed. Your routine is generated from
+                your goal, activity level and profile.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    title, difficulty, exercises = automatic_workout()
+
+    st.markdown(
+        f"""
+        <div class="card">
+            <div class="card-title">{title}</div>
+            <span class="chip">🎯 {profile["goal"]}</span>
+            <span class="chip">⚡ {difficulty}</span>
+            <span class="chip">⏱ ~35 min</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    for i, (exercise, prescription) in enumerate(exercises, 1):
+        st.markdown(
+            f"""
+            <div class="meal">
+                <div class="meal-name">{i}. {exercise}</div>
+                <div class="meal-food">{prescription}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### ⏱ Workout Timer")
+
+    if "workout_timer" not in st.session_state:
+        st.session_state.workout_timer = None
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        if st.button(
+            "▶ Start Workout",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state.workout_timer = {
+                "start": time.time(),
+                "end": None,
+            }
+
+    with c2:
+        if st.button(
+            "■ Stop Timer",
+            use_container_width=True,
+        ):
+            if st.session_state.workout_timer:
+                st.session_state.workout_timer["end"] = time.time()
+
+    with c3:
+        if st.button(
+            "✓ Complete",
+            use_container_width=True,
+        ):
+            st.session_state.workout_history.append({
+                "date": TODAY,
+                "workout": title,
+                "duration": 35,
+                "calories": 180,
+            })
+            st.success("Workout recorded.")
+
+    timer = st.session_state.workout_timer
+
+    if timer:
+        end = timer["end"] or time.time()
+        elapsed = int(end - timer["start"])
+
+        st.markdown(
+            f"""
+            <div class="card" style="text-align:center;">
+                <div class="muted">Elapsed</div>
+                <div style="font-size:48px;font-weight:800;">
+                    {elapsed // 60:02d}:{elapsed % 60:02d}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### 📈 Workout History")
+
+    if st.session_state.workout_history:
+        for item in reversed(st.session_state.workout_history):
+            st.markdown(
+                f"""
+                <div class="meal">
+                    <b>{item["date"]}</b> · {item["workout"]}
+                    <div class="muted">
+                        {item["duration"]} min · ~{item["calories"]} kcal
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("Complete your first workout to start your history.")
+
+# =========================================================
+# PROGRESS
+# =========================================================
+
+elif st.session_state.page == "Progress":
+
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-title">📊 Body Progress</div>
+            <div class="hero-sub">
+                Track measurements, trends and body photos over time.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("## 📏 New Measurement")
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        current_weight = st.number_input(
+            "Weight (kg)",
+            min_value=20.0,
+            max_value=300.0,
+            value=float(st.session_state.profile["weight"]),
+            step=0.1,
+        )
+
+        waist = st.number_input(
+            "Waist (cm)",
+            min_value=30.0,
+            max_value=250.0,
+            value=80.0,
+            step=0.5,
+        )
+
+    with c2:
+        chest = st.number_input(
+            "Chest (cm)",
+            min_value=30.0,
+            max_value=250.0,
+            value=90.0,
+            step=0.5,
+        )
+
+        arms = st.number_input(
+            "Arms (cm)",
+            min_value=10.0,
+            max_value=100.0,
+            value=30.0,
+            step=0.5,
+        )
+
+    with c3:
+        legs = st.number_input(
+            "Legs / thigh (cm)",
+            min_value=20.0,
+            max_value=150.0,
+            value=50.0,
+            step=0.5,
+        )
+
+        shoulders = st.number_input(
+            "Shoulders (cm)",
+            min_value=30.0,
+            max_value=200.0,
+            value=45.0,
+            step=0.5,
+        )
+
+    if st.button(
+        "＋ Save Measurement",
+        use_container_width=True,
+        type="primary",
+    ):
+        record = {
+            "date": TODAY,
+            "weight": current_weight,
+            "waist": waist,
+            "chest": chest,
+            "arms": arms,
+            "legs": legs,
+            "shoulders": shoulders,
+        }
+
+        st.session_state.body_history.append(record)
+
+        if not st.session_state.weight_history or \
+                st.session_state.weight_history[-1]["date"] != TODAY:
+            st.session_state.weight_history.append({
+                "date": TODAY,
+                "weight": current_weight,
+            })
+
+        if not st.session_state.waist_history or \
+                st.session_state.waist_history[-1]["date"] != TODAY:
+            st.session_state.waist_history.append({
+                "date": TODAY,
+                "waist": waist,
+            })
+
+        st.session_state.profile["weight"] = current_weight
+        st.session_state.targets = calculate_targets(
+            st.session_state.profile
+        )
+
+        st.success("Measurement saved.")
+
+    # Charts
+    if st.session_state.body_history:
+
+        st.markdown("## 📈 Trends")
+
+        try:
+            import pandas as pd
+
+            df = pd.DataFrame(
+                st.session_state.body_history
+            )
+
+            if len(df) > 1:
+                st.markdown("### Weight")
+                st.line_chart(
+                    df.set_index("date")["weight"]
+                )
+
+                st.markdown("### Waist")
+                st.line_chart(
+                    df.set_index("date")["waist"]
+                )
+
+                st.markdown("### Body Measurements")
+                st.line_chart(
+                    df.set_index("date")[
+                        ["chest", "arms", "legs", "shoulders"]
+                    ]
+                )
+            else:
+                st.info("Add measurements on different days to see trends.")
+
+        except Exception:
+            pass
+
+    # Body scan
+    st.markdown("---")
+    st.markdown("## 📸 Body Scan")
+
+    st.markdown(
+        """
+        <div class="card">
+            <div class="card-title">Camera-based progress system</div>
+            <div class="muted">
+                Capture consistent front, side and back photos.
+                NutriCoach can compare visual progress, while measurements
+                provide the reliable numeric trend.
+            </div>
+            <div style="margin-top:12px;">
+                <span class="chip">Front</span>
+                <span class="chip">Side</span>
+                <span class="chip">Back</span>
+                <span class="chip">Posture</span>
+                <span class="chip">Proportion</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    angle = st.selectbox(
+        "Camera angle",
+        ["Front", "Side", "Back"],
+    )
+
+    photo = st.camera_input(
+        f"Take {angle.lower()} photo"
+    )
+
+    if photo is not None:
+        photo_bytes = photo.getvalue()
+
+        if st.button(
+            f"Save {angle} progress photo",
+            use_container_width=True,
+        ):
+            st.session_state.photos.append({
+                "date": TODAY,
+                "angle": angle,
+                "bytes": photo_bytes,
+            })
+            st.success(f"{angle} photo saved.")
+
+    # Numeric proportion
+    if st.session_state.body_history:
+        latest = st.session_state.body_history[-1]
+
+        waist_value = latest["waist"]
+        shoulder_value = latest["shoulders"]
+
+        if waist_value > 0:
+            proportion = shoulder_value / waist_value
+
+            st.markdown(
+                f"""
+                <div class="card">
+                    <div class="card-title">📐 Current proportion estimate</div>
+                    <div class="big-number">{proportion:.2f}</div>
+                    <div class="muted">
+                        Shoulder-to-waist measurement ratio based on your
+                        manually entered measurements.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    # Photos
+    if st.session_state.photos:
+        st.markdown("## 🖼️ Progress Photos")
+
+        for saved in reversed(st.session_state.photos[-6:]):
+            st.markdown(
+                f"**{saved['date']} · {saved['angle']}**"
+            )
+            st.image(saved["bytes"], width=260)
+
+    st.caption(
+        "A normal phone camera cannot reliably determine exact body measurements "
+        "in centimetres from a single uncalibrated image. Treat visual scan "
+        "outputs as progress references and confirm measurements manually."
+    )
+
+# =========================================================
+# PROFILE
+# =========================================================
+
+elif st.session_state.page == "Profile":
+
+    profile = st.session_state.profile
+
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-title">👤 My Profile</div>
+            <div class="hero-sub">
+                These settings drive your calories, macros, diet and automatic workout.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        age = st.number_input(
+            "Age",
+            min_value=13,
+            max_value=100,
+            value=int(profile["age"]),
+        )
+
+        sex = st.selectbox(
+            "Sex",
+            ["Male", "Female"],
+            index=["Male", "Female"].index(profile["sex"]),
+        )
+
+        height = st.number_input(
+            "Height (cm)",
+            min_value=100.0,
+            max_value=230.0,
+            value=float(profile["height"]),
+            step=0.5,
+        )
+
+        weight = st.number_input(
+            "Weight (kg)",
+            min_value=30.0,
+            max_value=250.0,
+            value=float(profile["weight"]),
+            step=0.1,
+        )
+
+        activity = st.selectbox(
+            "Activity level",
+            [
+                "Sedentary",
+                "Lightly Active",
+                "Moderately Active",
+                "Very Active",
+            ],
+            index=[
+                "Sedentary",
+                "Lightly Active",
+                "Moderately Active",
+                "Very Active",
+            ].index(profile["activity"]),
+        )
+
+    with c2:
+        diet = st.selectbox(
+            "Diet preference",
+            [
+                "Vegetarian",
+                "Vegan",
+                "Non-Vegetarian",
+            ],
+            index=[
+                "Vegetarian",
+                "Vegan",
+                "Non-Vegetarian",
+            ].index(profile["diet"]),
+        )
+
+        budget = st.selectbox(
+            "Food budget",
+            ["Low", "Medium", "High"],
+            index=[
+                "Low",
+                "Medium",
+                "High",
+            ].index(profile["budget"]),
+        )
+
+        body_type = st.selectbox(
+            "Current body type",
+            [
+                "Slim/Skinny",
+                "Skinny Fat",
+                "Average",
+                "Athletic",
+                "Muscular",
+                "Higher Body Fat",
+            ],
+            index=[
+                "Slim/Skinny",
+                "Skinny Fat",
+                "Average",
+                "Athletic",
+                "Muscular",
+                "Higher Body Fat",
+            ].index(profile["body_type"]),
+        )
+
+        goal = st.selectbox(
+            "Body goal",
+            [
+                "General Fitness",
+                "Calisthenics",
+                "Greek Body",
+                "Aesthetic Body",
+                "Muscle Gain",
+                "Fat Loss",
+                "Strength",
+                "Recomposition",
+            ],
+            index=[
+                "General Fitness",
+                "Calisthenics",
+                "Greek Body",
+                "Aesthetic Body",
+                "Muscle Gain",
+                "Fat Loss",
+                "Strength",
+                "Recomposition",
+            ].index(profile["goal"]),
+        )
+
+    if st.button(
+        "💾 Save Profile & Recalculate",
+        use_container_width=True,
+        type="primary",
     ):
         st.session_state.profile = {
             "age": age,
@@ -873,1047 +2157,85 @@ if st.session_state.page == "Profile":
         }
 
         st.session_state.targets = calculate_targets(
-            age,
-            sex,
-            height,
-            weight,
-            activity,
-            goal,
+            st.session_state.profile
         )
 
-        st.session_state.water_target = st.session_state.targets[
-            "water_glasses"
-        ]
-
-        st.session_state.diet_plan = create_diet_plan(
+        # Regenerate plan for the updated diet preference.
+        st.session_state.diet_cycle += 1
+        st.session_state.diet_plan = generate_diet_plan(
             st.session_state.diet_cycle
         )
 
-        st.success("Profile saved and personalized targets calculated.")
-        st.rerun()
+        st.success("Profile updated. Nutrition targets and workout updated.")
 
-    if profile_ready():
-        st.divider()
+    st.markdown("---")
+    st.markdown("## 🎯 Your Calculated Targets")
 
-        st.subheader("🎯 Your calculated targets")
+    targets = st.session_state.targets
 
-        t = st.session_state.targets
+    a, b, c, d = st.columns(4)
 
-        c1, c2, c3, c4 = st.columns(4)
+    a.metric("Calories", f'{targets["calories"]} kcal')
+    b.metric("Protein", f'{targets["protein"]} g')
+    c.metric("Carbs", f'{targets["carbs"]} g')
+    d.metric("Fat", f'{targets["fat"]} g')
 
-        c1.metric("Calories", f"{t['calories']} kcal")
-        c2.metric("Protein", f"{t['protein']} g")
-        c3.metric("Carbs", f"{t['carbs']} g")
-        c4.metric("Fat", f"{t['fat']} g")
+    a, b, c, d = st.columns(4)
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Fiber", f"{t['fiber']} g")
-        c2.metric("Water", f"{t['water_liters']} L")
-        c3.metric("BMR", f"{t['bmr']} kcal")
+    a.metric("Fiber", f'{targets["fiber"]} g')
+    b.metric("Water", f'{targets["water_glasses"]} glasses')
+    c.metric("BMR", f'{targets["bmr"]} kcal')
+    d.metric("Estimated TDEE", f'{targets["tdee"]} kcal')
 
-        st.info(
-            "These are estimates for planning and tracking, not medical "
-            "advice or an exact prescription."
-        )
-
-    # Personal diet calculator
-    st.divider()
-    st.subheader("🧮 Personal Diet Calculator")
     st.caption(
-        "Ate something that wasn't in your plan? Calculate it here "
-        "and add it to today's tracking."
+        "These are general estimates based on the Mifflin-St Jeor equation and "
+        "the profile information you entered. They are not medical prescriptions."
     )
 
-    c1, c2, c3 = st.columns(3)
+    st.markdown("---")
+    st.markdown("## 🧍 Body Type Guide")
 
-    with c1:
-        custom_food = st.text_input(
-            "Food",
-            placeholder="e.g. homemade paneer sandwich",
-        )
+    body_descriptions = {
+        "Slim/Skinny":
+            "Lower body mass with a naturally lean appearance.",
+        "Skinny Fat":
+            "A user-selected descriptive category for relatively low muscle with "
+            "more noticeable fat around the midsection; not a medical diagnosis.",
+        "Average":
+            "General middle-range body composition.",
+        "Athletic":
+            "Regular training with noticeable muscle development and conditioning.",
+        "Muscular":
+            "Higher-than-average muscle development.",
+        "Higher Body Fat":
+            "Higher visible or measured body-fat levels.",
+    }
 
-    with c2:
-        custom_calories = st.number_input(
-            "Calories",
-            min_value=0.0,
-            value=0.0,
-        )
-
-    with c3:
-        custom_protein = st.number_input(
-            "Protein (g)",
-            min_value=0.0,
-            value=0.0,
-        )
-
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-        custom_carbs = st.number_input(
-            "Carbs (g)",
-            min_value=0.0,
-            value=0.0,
-        )
-
-    with c2:
-        custom_fat = st.number_input(
-            "Fat (g)",
-            min_value=0.0,
-            value=0.0,
-        )
-
-    with c3:
-        custom_fiber = st.number_input(
-            "Fiber (g)",
-            min_value=0.0,
-            value=0.0,
-        )
-
-    if st.button(
-        "➕ Add Custom Food",
-        use_container_width=True,
-    ):
-        if custom_food.strip():
-            st.session_state.food_log.append({
-                "name": custom_food,
-                "meal": "Custom",
-                "grams": 0,
-                "calories": custom_calories,
-                "protein": custom_protein,
-                "carbs": custom_carbs,
-                "fat": custom_fat,
-                "fiber": custom_fiber,
-                "vitamin_a": 0,
-                "vitamin_c": 0,
-                "vitamin_d": 0,
-                "calcium": 0,
-                "iron": 0,
-                "magnesium": 0,
-                "potassium": 0,
-                "zinc": 0,
-            })
-
-            st.success("Added to today's food log.")
-            st.rerun()
-
-
-# =========================================================
-# FOOD PAGE
-# =========================================================
-
-elif st.session_state.page == "Food":
-
-    st.header("🍽️ Smart Food Tracker")
-    st.caption(
-        "Search → choose serving → see nutrition → add → immediately "
-        "see how it changes today's targets."
-    )
-
-    if not profile_ready():
-        st.warning(
-            "Complete your profile first so NutriCoach can calculate "
-            "your personal targets."
-        )
-
-    query = st.text_input(
-        "🔎 Search USDA food",
-        placeholder="Try egg, banana, rice, chicken, paneer...",
-    )
-
-    if st.button(
-        "Search Food",
-        type="primary",
-        use_container_width=True,
-    ) and query.strip():
-
-        foods, error = search_usda(query)
-
-        if error:
-            st.error(error)
-        elif not foods:
-            st.warning("No USDA foods found.")
-        else:
-            st.session_state.search_results = foods
-
-    if "search_results" in st.session_state:
-
-        st.subheader("Search results")
-
-        names = [
-            f"{i+1}. {food.get('description', 'Unknown food')}"
-            for i, food in enumerate(
-                st.session_state.search_results
-            )
-        ]
-
-        selected_name = st.selectbox(
-            "Choose a food",
-            names,
-        )
-
-        index = names.index(selected_name)
-
-        food = st.session_state.search_results[index]
-        nutrition = get_nutrients(food)
-
+    for name, description in body_descriptions.items():
         st.markdown(
             f"""
-            <div class="card">
-                <h3>{food.get("description", "Food")}</h3>
-                <span class="pill">USDA</span>
-                <span class="pill">Nutrition estimate</span>
+            <div class="meal">
+                <div class="meal-name">{name}</div>
+                <div class="meal-food">{description}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        unit = st.radio(
-            "Serving type",
-            ["grams", "pieces"],
-            horizontal=True,
-        )
-
-        if unit == "grams":
-            amount = st.number_input(
-                "Amount (grams)",
-                min_value=1.0,
-                value=100.0,
-            )
-            grams = amount
-        else:
-            pieces = st.number_input(
-                "Number of pieces",
-                min_value=1.0,
-                value=1.0,
-            )
-
-            grams = pieces * detect_piece_weight(
-                food.get("description", "")
-            )
-
-            st.caption(
-                f"Estimated serving weight: {grams:.0f}g"
-            )
-
-        multiplier = grams / 100
-
-        calculated = {
-            key: round(value * multiplier, 1)
-            for key, value in nutrition.items()
-        }
-
-        st.subheader("Nutrition for this serving")
-
-        c1, c2, c3, c4, c5 = st.columns(5)
-
-        c1.metric(
-            "Calories",
-            f"{calculated['calories']:.0f}",
-        )
-
-        c2.metric(
-            "Protein",
-            f"{calculated['protein']:.1f}g",
-        )
-
-        c3.metric(
-            "Carbs",
-            f"{calculated['carbs']:.1f}g",
-        )
-
-        c4.metric(
-            "Fat",
-            f"{calculated['fat']:.1f}g",
-        )
-
-        c5.metric(
-            "Fiber",
-            f"{calculated['fiber']:.1f}g",
-        )
-
-        if profile_ready():
-
-            rem = remaining_targets()
-
-            new_cal = max(
-                0,
-                rem["calories"] - calculated["calories"],
-            )
-
-            new_protein = max(
-                0,
-                rem["protein"] - calculated["protein"],
-            )
-
-            st.markdown(
-                f"""
-                <div class="coach">
-                    <h3>⚡ What happens if you eat this?</h3>
-                    <p>
-                    Before eating: <b>{rem['calories']:.0f} kcal</b>
-                    and <b>{rem['protein']:.1f}g protein</b> remaining.
-                    </p>
-                    <p>
-                    After eating: about
-                    <b>{new_cal:.0f} kcal</b> and
-                    <b>{new_protein:.1f}g protein</b>
-                    would remain.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        meal = st.selectbox(
-            "Meal",
-            ["Breakfast", "Lunch", "Snack", "Dinner", "Custom"],
-        )
-
-        if st.button(
-            "➕ Add Food to Today",
-            type="primary",
-            use_container_width=True,
-        ):
-
-            entry = {
-                "name": food.get(
-                    "description",
-                    "Unknown food",
-                ),
-                "meal": meal,
-                "grams": grams,
-                **calculated,
-            }
-
-            st.session_state.food_log.append(entry)
-
-            st.success(
-                "Added! Your remaining targets have been updated."
-            )
-
-            st.rerun()
-
-    # Today's food
-    st.divider()
-    st.subheader("📋 Today's Food")
-
-    if not st.session_state.food_log:
-        st.info("Nothing logged yet.")
-    else:
-
-        totals = current_totals()
-
-        c1, c2, c3, c4 = st.columns(4)
-
-        c1.metric(
-            "Calories",
-            f"{totals['calories']:.0f}",
-        )
-
-        c2.metric(
-            "Protein",
-            f"{totals['protein']:.1f}g",
-        )
-
-        c3.metric(
-            "Carbs",
-            f"{totals['carbs']:.1f}g",
-        )
-
-        c4.metric(
-            "Fiber",
-            f"{totals['fiber']:.1f}g",
-        )
-
-        for i, item in enumerate(
-            st.session_state.food_log
-        ):
-
-            with st.container():
-                st.markdown(
-                    f"""
-                    <div class="meal">
-                        <div class="meal-title">
-                            {item['name']}
-                        </div>
-                        <div class="muted">
-                            {item['meal']} · {item['grams']:.0f}g
-                        </div>
-                        <br>
-                        {item['calories']:.0f} kcal ·
-                        {item['protein']:.1f}g protein ·
-                        {item['carbs']:.1f}g carbs ·
-                        {item['fat']:.1f}g fat
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                if st.button(
-                    "Remove",
-                    key=f"remove_food_{i}",
-                ):
-                    st.session_state.food_log.pop(i)
-                    st.rerun()
-
-
 # =========================================================
-# TODAY PAGE
+# FOOTER
 # =========================================================
 
-elif st.session_state.page == "Today":
-
-    if not profile_ready():
-
-        st.markdown(
-            """
-            <div class="coach">
-                <h2>👋 Welcome to NutriCoach</h2>
-                <p>
-                Let's personalize your nutrition and training.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button(
-            "🚀 Set Up My Profile",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state.page = "Profile"
-            st.rerun()
-
-    else:
-
-        p = st.session_state.profile
-        t = st.session_state.targets
-        totals = current_totals()
-
-        st.markdown(
-            f"""
-            <div class="card">
-                <h2>Good to see you 👋</h2>
-                <p class="muted">
-                Goal: <b>{p['goal']}</b> ·
-                {p['diet']} ·
-                {p['body_type']}
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Coach centerpiece
-        st.markdown(
-            f"""
-            <div class="coach">
-                <h2>🧠 Your next best action</h2>
-                <p>{coach_recommendation()}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.subheader("🔥 Today's nutrition")
-
-        c1, c2, c3, c4 = st.columns(4)
-
-        c1.metric(
-            "Calories",
-            f"{totals['calories']:.0f} / {t['calories']}",
-        )
-
-        c2.metric(
-            "Protein",
-            f"{totals['protein']:.0f} / {t['protein']:.0f}g",
-        )
-
-        c3.metric(
-            "Carbs",
-            f"{totals['carbs']:.0f} / {t['carbs']:.0f}g",
-        )
-
-        c4.metric(
-            "Fiber",
-            f"{totals['fiber']:.0f} / {t['fiber']:.0f}g",
-        )
-
-        st.progress(
-            percent(
-                totals["calories"],
-                t["calories"],
-            ) / 100
-        )
-
-        st.caption(
-            f"{remaining_targets()['calories']:.0f} kcal remaining"
-        )
-
-        # Water
-        st.subheader("💧 Hydration")
-
-        water_percent = min(
-            100,
-            st.session_state.water_glasses
-            / max(1, st.session_state.water_target)
-            * 100,
-        )
-
-        st.progress(water_percent / 100)
-
-        c1, c2, c3 = st.columns(3)
-
-        c1.metric(
-            "Today",
-            f"{st.session_state.water_glasses} glasses",
-        )
-
-        c2.metric(
-            "Target",
-            f"{st.session_state.water_target} glasses",
-        )
-
-        with c3:
-            if st.button(
-                "💧 Add Glass",
-                use_container_width=True,
-            ):
-                st.session_state.water_glasses += 1
-                st.rerun()
-
-        # Automatic workout
-        st.subheader("🏋️ Today's automatic workout")
-
-        workout = generate_workout()
-
-        name, duration, intensity = workout
-
-        calories_burned = estimated_workout_calories(
-            duration,
-            p["weight"],
-            intensity,
-        )
-
-        st.markdown(
-            f"""
-            <div class="card">
-                <h3>{name}</h3>
-                <p>
-                    ⏱️ {duration} minutes ·
-                    🔥 ~{calories_burned} kcal ·
-                    ⚡ {intensity}
-                </p>
-                <p class="muted">
-                    Automatically selected from your profile and goal.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button(
-            "✅ Mark Workout Complete",
-            use_container_width=True,
-        ):
-            st.session_state.workout_history.append({
-                "date": today_string(),
-                "workout": name,
-                "minutes": duration,
-                "calories": calories_burned,
-            })
-
-            st.success("Workout recorded!")
-            st.rerun()
-
-        # Quick actions
-        st.subheader("⚡ Quick actions")
-
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            if st.button(
-                "🍽️ Log Food",
-                use_container_width=True,
-            ):
-                st.session_state.page = "Food"
-                st.rerun()
-
-        with c2:
-            if st.button(
-                "🍱 View Diet",
-                use_container_width=True,
-            ):
-                st.session_state.show_diet = True
-
-        with c3:
-            if st.button(
-                "📸 Body Scan",
-                use_container_width=True,
-            ):
-                st.session_state.show_scan = True
-
-        # Diet panel
-        if st.session_state.get("show_diet", False):
-
-            st.divider()
-            st.subheader("🍱 Today's planned meals")
-
-            if not st.session_state.diet_plan:
-                st.session_state.diet_plan = create_diet_plan(
-                    st.session_state.diet_cycle
-                )
-
-            today_plan = st.session_state.diet_plan[
-                date.today().day % 14
-            ]
-
-            for meal, food in today_plan["meals"]:
-                st.markdown(
-                    f"""
-                    <div class="meal">
-                        <div class="meal-title">
-                            {meal}
-                        </div>
-                        {food}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-
-# =========================================================
-# WORKOUT PAGE
-# =========================================================
-
-elif st.session_state.page == "Workout":
-
-    st.header("🏋️ Automatic Workout")
-    st.caption(
-        "No exercise selection required. NutriCoach generates the "
-        "session from your profile."
-    )
-
-    if not profile_ready():
-        st.warning("Complete your profile first.")
-    else:
-
-        p = st.session_state.profile
-        name, duration, intensity = generate_workout()
-
-        calories = estimated_workout_calories(
-            duration,
-            p["weight"],
-            intensity,
-        )
-
-        st.markdown(
-            f"""
-            <div class="coach">
-                <h2>Today's session</h2>
-                <h1>{name}</h1>
-                <p>
-                    ⏱️ {duration} min ·
-                    🔥 ~{calories} kcal ·
-                    ⚡ {intensity}
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.subheader("Workout structure")
-
-        if "Calisthenics" in name:
-            exercises = [
-                "Warm-up — 5 min",
-                "Push-ups — 3 sets",
-                "Bodyweight squats — 3 sets",
-                "Rows / assisted rows — 3 sets",
-                "Lunges — 3 sets",
-                "Plank — 3 sets",
-                "Cool-down — 5 min",
-            ]
-
-        elif "Strength" in name:
-            exercises = [
-                "Warm-up — 5 min",
-                "Squat pattern — 3 sets",
-                "Push pattern — 3 sets",
-                "Pull pattern — 3 sets",
-                "Hip hinge — 3 sets",
-                "Core — 3 sets",
-                "Cool-down — 5 min",
-            ]
-
-        elif "Walk" in name:
-            exercises = [
-                "Brisk walk — 25 min",
-                "Hip mobility — 5 min",
-                "Shoulder mobility — 5 min",
-                "Breathing / cool-down — 5 min",
-            ]
-
-        else:
-            exercises = [
-                "Warm-up — 5 min",
-                "Squat pattern — 3 sets",
-                "Push-ups — 3 sets",
-                "Rows — 3 sets",
-                "Lunges — 3 sets",
-                "Core — 3 sets",
-                "Cool-down — 5 min",
-            ]
-
-        for exercise in exercises:
-            st.checkbox(
-                exercise,
-                key=f"exercise_{exercise}",
-            )
-
-        if st.button(
-            "🏁 Complete Today's Workout",
-            type="primary",
-            use_container_width=True,
-        ):
-
-            st.session_state.workout_history.append({
-                "date": today_string(),
-                "workout": name,
-                "minutes": duration,
-                "calories": calories,
-            })
-
-            st.success(
-                "Workout complete. Great job!"
-            )
-
-
-# =========================================================
-# PROGRESS PAGE
-# =========================================================
-
-elif st.session_state.page == "Progress":
-
-    st.header("📊 Body Progress")
-    st.caption(
-        "Track measurements, nutrition, hydration, workouts and photos."
-    )
-
-    if profile_ready():
-
-        p = st.session_state.profile
-
-        st.subheader("📏 Today's measurements")
-
-        c1, c2 = st.columns(2)
-
-        with c1:
-            current_weight = st.number_input(
-                "Weight (kg)",
-                min_value=30.0,
-                max_value=250.0,
-                value=float(p["weight"]),
-            )
-
-        with c2:
-            waist = st.number_input(
-                "Waist (cm)",
-                min_value=30.0,
-                max_value=200.0,
-                value=80.0,
-            )
-
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            chest = st.number_input(
-                "Chest (cm)",
-                min_value=40.0,
-                max_value=200.0,
-                value=90.0,
-            )
-
-        with c2:
-            arms = st.number_input(
-                "Arms (cm)",
-                min_value=10.0,
-                max_value=100.0,
-                value=30.0,
-            )
-
-        with c3:
-            legs = st.number_input(
-                "Legs (cm)",
-                min_value=20.0,
-                max_value=120.0,
-                value=50.0,
-            )
-
-        if st.button(
-            "📌 Save Measurements",
-            type="primary",
-            use_container_width=True,
-        ):
-
-            st.session_state.weight_history.append({
-                "date": today_string(),
-                "weight": current_weight,
-            })
-
-            st.session_state.waist_history.append({
-                "date": today_string(),
-                "waist": waist,
-            })
-
-            st.success("Progress saved.")
-
-        st.divider()
-
-        # Weight chart
-        if st.session_state.weight_history:
-
-            st.subheader("⚖️ Weight trend")
-
-            df_weight = pd.DataFrame(
-                st.session_state.weight_history
-            )
-
-            df_weight["date"] = pd.to_datetime(
-                df_weight["date"]
-            )
-
-            df_weight = df_weight.drop_duplicates(
-                subset=["date"],
-                keep="last",
-            )
-
-            st.line_chart(
-                df_weight.set_index("date")["weight"]
-            )
-
-        # Waist chart
-        if st.session_state.waist_history:
-
-            st.subheader("📐 Waist trend")
-
-            df_waist = pd.DataFrame(
-                st.session_state.waist_history
-            )
-
-            df_waist["date"] = pd.to_datetime(
-                df_waist["date"]
-            )
-
-            df_waist = df_waist.drop_duplicates(
-                subset=["date"],
-                keep="last",
-            )
-
-            st.line_chart(
-                df_waist.set_index("date")["waist"]
-            )
-
-        # Nutrition chart
-        st.subheader("🥗 Today's nutrition vs target")
-
-        totals = current_totals()
-        targets = st.session_state.targets
-
-        nutrition_df = pd.DataFrame({
-            "Consumed": [
-                totals["calories"],
-                totals["protein"],
-                totals["carbs"],
-                totals["fat"],
-                totals["fiber"],
-            ],
-            "Target": [
-                targets["calories"],
-                targets["protein"],
-                targets["carbs"],
-                targets["fat"],
-                targets["fiber"],
-            ],
-        }, index=[
-            "Calories",
-            "Protein",
-            "Carbs",
-            "Fat",
-            "Fiber",
-        ])
-
-        st.bar_chart(nutrition_df)
-
-        # Workout history
-        st.subheader("🏋️ Workout history")
-
-        if st.session_state.workout_history:
-
-            workout_df = pd.DataFrame(
-                st.session_state.workout_history
-            )
-
-            workout_df["date"] = pd.to_datetime(
-                workout_df["date"]
-            )
-
-            st.bar_chart(
-                workout_df.set_index("date")["minutes"]
-            )
-
-            st.dataframe(
-                workout_df,
-                use_container_width=True,
-                hide_index=True,
-            )
-
-        else:
-            st.info("Complete your first workout to see your history.")
-
-        # Body scan
-        st.divider()
-        st.subheader("📸 Body Scan")
-
-        st.info(
-            "The camera feature below captures progress photos. "
-            "A normal phone/laptop camera cannot reliably determine "
-            "exact body measurements in centimeters without calibration. "
-            "NutriCoach therefore presents proportions and photo progress "
-            "as estimates rather than pretending they are exact."
-        )
-
-        photo_type = st.selectbox(
-            "Photo angle",
-            ["Front", "Side", "Back"],
-        )
-
-        photo = st.camera_input(
-            f"Capture {photo_type} photo"
-        )
-
-        if photo is not None:
-            st.session_state.body_photos[
-                photo_type
-            ] = photo
-
-            st.success(
-                f"{photo_type} photo captured."
-            )
-
-        if st.session_state.body_photos:
-
-            st.subheader("Your progress photos")
-
-            cols = st.columns(
-                len(st.session_state.body_photos)
-            )
-
-            for col, (angle, image) in zip(
-                cols,
-                st.session_state.body_photos.items(),
-            ):
-                with col:
-                    st.image(
-                        image,
-                        caption=angle,
-                        use_container_width=True,
-                    )
-
-        st.caption(
-            "For more accurate measurement tracking, enter your actual "
-            "tape measurements above. Camera-based estimates are not "
-            "a substitute for calibrated measurement."
-        )
-
-    else:
-        st.warning("Complete your profile to start tracking progress.")
-
-
-# =========================================================
-# DIET / SECONDARY FEATURE
-# =========================================================
-
-# Diet is intentionally accessible from the Today page.
-# This keeps the primary navigation limited to five mobile tabs.
-
-if (
-    st.session_state.page == "Today"
-    and profile_ready()
-    and st.session_state.get("show_diet", False)
-):
-
-    st.divider()
-    st.header("🍱 Your 14-Day Diet Plan")
-
-    if not st.session_state.diet_plan:
-        st.session_state.diet_plan = create_diet_plan(
-            st.session_state.diet_cycle
-        )
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-        if st.button(
-            "🔄 Generate New 14 Days",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state.diet_cycle += 1
-            st.session_state.diet_plan = create_diet_plan(
-                st.session_state.diet_cycle
-            )
-            st.rerun()
-
-    with c2:
-        st.info(
-            f"Cycle {st.session_state.diet_cycle}"
-        )
-
-    for day_index, day in enumerate(
-        st.session_state.diet_plan
-    ):
-
-        with st.expander(
-            f"Day {day['day']} · {day['note']}"
-        ):
-
-            for meal_index, (meal, food) in enumerate(
-                day["meals"]
-            ):
-
-                st.markdown(
-                    f"""
-                    <div class="meal">
-                        <div class="meal-title">
-                            {meal}
-                        </div>
-                        {food}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                if st.button(
-                    "🔁 Swap Meal",
-                    key=f"swap_{day_index}_{meal_index}",
-                ):
-                    swap_meal(
-                        day_index,
-                        meal_index,
-                    )
-                    st.rerun()
-
-
-# =========================================================
-# FINAL SAFETY / FOOTER
-# =========================================================
-
-st.divider()
-
-st.caption(
-    "NutriCoach MVP · Nutrition values are estimates from USDA data. "
-    "Body measurements and calorie targets should be treated as "
-    "planning estimates, not medical advice."
+st.markdown(
+    """
+    <div style="
+        text-align:center;
+        color:#667970;
+        padding:30px 0 10px;
+        font-size:12px;
+    ">
+        NutriCoach · Personal nutrition + fitness MVP
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
