@@ -2,10 +2,6 @@ import streamlit as st
 import requests
 from datetime import date
 
-# =========================================================
-# PAGE SETUP
-# =========================================================
-
 st.set_page_config(
     page_title="NutriCoach",
     page_icon="🥗",
@@ -28,14 +24,15 @@ if "food_log" not in st.session_state:
 if "water" not in st.session_state:
     st.session_state.water = 0
 
+if "completed_meals" not in st.session_state:
+    st.session_state.completed_meals = set()
+
 # =========================================================
-# HELPER FUNCTIONS
+# CALCULATOR
 # =========================================================
 
 def calculate_targets(age, sex, height, weight, activity, goal):
-    """Calculate estimated daily calorie and macro targets."""
 
-    # Mifflin-St Jeor BMR
     if sex == "Male":
         bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
     else:
@@ -50,7 +47,7 @@ def calculate_targets(age, sex, height, weight, activity, goal):
 
     tdee = bmr * activity_factors[activity]
 
-    goal_adjustments = {
+    adjustments = {
         "General Fitness": 0,
         "Calisthenics": 100,
         "Greek Body": -100,
@@ -61,26 +58,30 @@ def calculate_targets(age, sex, height, weight, activity, goal):
         "Recomposition": -150
     }
 
-    calories = tdee + goal_adjustments[goal]
+    calories = tdee + adjustments[goal]
 
-    # Protein target
     if goal in ["Muscle Gain", "Strength", "Calisthenics"]:
         protein = weight * 1.8
-    elif goal in ["Fat Loss", "Recomposition", "Greek Body", "Aesthetic Body"]:
+    elif goal in [
+        "Fat Loss",
+        "Recomposition",
+        "Greek Body",
+        "Aesthetic Body"
+    ]:
         protein = weight * 1.7
     else:
         protein = weight * 1.6
 
     fat = weight * 0.8
 
-    # Calories remaining for carbohydrates
-    carbs = (calories - (protein * 4) - (fat * 9)) / 4
+    carbs = (
+        calories -
+        protein * 4 -
+        fat * 9
+    ) / 4
 
-    # Fiber
     fiber = calories / 1000 * 14
-
-    # Water
-    water_ml = weight * 35
+    water = weight * 35
 
     return {
         "bmr": round(bmr),
@@ -90,12 +91,14 @@ def calculate_targets(age, sex, height, weight, activity, goal):
         "carbs": max(round(carbs), 50),
         "fat": round(fat),
         "fiber": round(fiber),
-        "water": round(water_ml)
+        "water": round(water)
     }
 
+# =========================================================
+# USDA
+# =========================================================
 
 def search_usda(food_name, api_key):
-    """Search USDA FoodData Central."""
 
     url = "https://api.nal.usda.gov/fdc/v1/foods/search"
 
@@ -106,45 +109,72 @@ def search_usda(food_name, api_key):
     }
 
     try:
-        response = requests.get(url, params=params, timeout=15)
+        response = requests.get(
+            url,
+            params=params,
+            timeout=15
+        )
 
         if response.status_code != 200:
             return []
 
-        data = response.json()
-        return data.get("foods", [])
+        return response.json().get("foods", [])
 
     except Exception:
         return []
 
 
-def get_nutrient(food, nutrient_name):
-    """Get a nutrient from a USDA food result."""
+def get_nutrient(food, name):
 
     for nutrient in food.get("foodNutrients", []):
-        name = nutrient.get("nutrientName", "")
 
-        if name.lower() == nutrient_name.lower():
+        if nutrient.get("nutrientName", "").lower() == name.lower():
             return nutrient.get("value", 0)
 
     return 0
 
 
 def get_food_nutrition(food):
-    """Extract nutrition information."""
 
     return {
         "calories": get_nutrient(food, "Energy"),
         "protein": get_nutrient(food, "Protein"),
-        "carbs": get_nutrient(food, "Carbohydrate, by difference"),
-        "fat": get_nutrient(food, "Total lipid (fat)"),
-        "fiber": get_nutrient(food, "Fiber, total dietary"),
-        "calcium": get_nutrient(food, "Calcium, Ca"),
-        "iron": get_nutrient(food, "Iron, Fe"),
-        "magnesium": get_nutrient(food, "Magnesium, Mg"),
-        "potassium": get_nutrient(food, "Potassium, K"),
-        "zinc": get_nutrient(food, "Zinc, Zn"),
-        "vitamin_a": get_nutrient(food, "Vitamin A, RAE"),
+        "carbs": get_nutrient(
+            food,
+            "Carbohydrate, by difference"
+        ),
+        "fat": get_nutrient(
+            food,
+            "Total lipid (fat)"
+        ),
+        "fiber": get_nutrient(
+            food,
+            "Fiber, total dietary"
+        ),
+        "calcium": get_nutrient(
+            food,
+            "Calcium, Ca"
+        ),
+        "iron": get_nutrient(
+            food,
+            "Iron, Fe"
+        ),
+        "magnesium": get_nutrient(
+            food,
+            "Magnesium, Mg"
+        ),
+        "potassium": get_nutrient(
+            food,
+            "Potassium, K"
+        ),
+        "zinc": get_nutrient(
+            food,
+            "Zinc, Zn"
+        ),
+        "vitamin_a": get_nutrient(
+            food,
+            "Vitamin A, RAE"
+        ),
         "vitamin_c": get_nutrient(
             food,
             "Vitamin C, total ascorbic acid"
@@ -157,7 +187,6 @@ def get_food_nutrition(food):
 
 
 def scale_nutrition(nutrition, grams):
-    """Scale USDA nutrition values assuming values are per 100g."""
 
     multiplier = grams / 100
 
@@ -166,12 +195,229 @@ def scale_nutrition(nutrition, grams):
         for key, value in nutrition.items()
     }
 
+# =========================================================
+# DIET DATABASE
+# =========================================================
+
+MEALS = {
+
+    "Vegetarian": {
+
+        "Breakfast": [
+            "Oats + milk + banana",
+            "Vegetable poha + curd",
+            "Paneer paratha + curd",
+            "Besan chilla + curd",
+            "Idli + sambar",
+            "Vegetable upma + milk",
+            "Moong dal chilla + curd",
+            "Oats + peanut butter + banana",
+            "Paneer sandwich",
+            "Dalia + milk + fruit",
+            "Stuffed roti + curd",
+            "Sprouts chaat + toast",
+            "Vegetable dosa + sambar",
+            "Peanut butter toast + milk"
+        ],
+
+        "Lunch": [
+            "Rice + dal + vegetables + curd",
+            "Roti + paneer + salad",
+            "Rajma rice + salad",
+            "Chole + roti + curd",
+            "Dal khichdi + curd",
+            "Roti + dal + mixed vegetables",
+            "Paneer rice bowl + salad",
+            "Rajma roti + vegetables",
+            "Chole rice + salad",
+            "Dal + rice + paneer",
+            "Roti + soy chunks + vegetables",
+            "Vegetable pulao + curd",
+            "Dal + roti + paneer",
+            "Rice + soy chunks + salad"
+        ],
+
+        "Snack": [
+            "Banana + peanuts",
+            "Roasted chana",
+            "Curd + fruit",
+            "Peanut butter toast",
+            "Sprouts chaat",
+            "Milk + banana",
+            "Peanuts + fruit",
+            "Roasted makhana",
+            "Curd + banana",
+            "Chana chaat",
+            "Milk + oats",
+            "Peanut chaat",
+            "Fruit + curd",
+            "Roasted chana + fruit"
+        ],
+
+        "Dinner": [
+            "Roti + paneer + vegetables",
+            "Dal + rice + salad",
+            "Roti + soy chunks + vegetables",
+            "Paneer bhurji + roti",
+            "Khichdi + curd",
+            "Roti + dal + vegetables",
+            "Paneer rice bowl",
+            "Chole + roti + salad",
+            "Rajma + rice",
+            "Soy chunks pulao",
+            "Dal + paneer + roti",
+            "Vegetable khichdi + curd",
+            "Roti + paneer tikka + salad",
+            "Dal + rice + vegetables"
+        ]
+    },
+
+    "Vegan": {
+
+        "Breakfast": [
+            "Oats + soy milk + banana",
+            "Vegetable poha",
+            "Besan chilla",
+            "Moong dal chilla",
+            "Idli + sambar",
+            "Vegan oats + peanut butter",
+            "Dalia + soy milk",
+            "Peanut butter toast + banana",
+            "Sprouts chaat + toast",
+            "Vegetable upma",
+            "Chana chaat + toast",
+            "Oats + banana + peanuts",
+            "Vegetable dosa + sambar",
+            "Poha + peanuts"
+        ],
+
+        "Lunch": [
+            "Rice + dal + vegetables",
+            "Roti + soy chunks + salad",
+            "Rajma rice",
+            "Chole + roti",
+            "Dal khichdi",
+            "Roti + dal + vegetables",
+            "Soy chunk rice bowl",
+            "Rajma roti",
+            "Chole rice",
+            "Dal + rice + soy chunks",
+            "Roti + chana + vegetables",
+            "Vegetable pulao + dal",
+            "Dal + roti + soy chunks",
+            "Rice + chickpeas + salad"
+        ],
+
+        "Snack": [
+            "Banana + peanuts",
+            "Roasted chana",
+            "Fruit + peanuts",
+            "Peanut butter toast",
+            "Sprouts chaat",
+            "Banana + peanut butter",
+            "Roasted makhana",
+            "Chana chaat",
+            "Peanuts + fruit",
+            "Soy milk + banana",
+            "Roasted chana + fruit",
+            "Peanut chaat",
+            "Sprouts + fruit",
+            "Banana + peanuts"
+        ],
+
+        "Dinner": [
+            "Roti + soy chunks + vegetables",
+            "Dal + rice + salad",
+            "Chole + roti",
+            "Soy chunk pulao",
+            "Khichdi + vegetables",
+            "Roti + dal + vegetables",
+            "Rajma rice",
+            "Chana + roti",
+            "Soy chunk rice bowl",
+            "Dal + roti + vegetables",
+            "Chole rice",
+            "Vegetable khichdi",
+            "Roti + soy chunks",
+            "Dal + rice + vegetables"
+        ]
+    },
+
+    "Non-Vegetarian": {
+
+        "Breakfast": [
+            "Oats + milk + banana",
+            "Eggs + toast + fruit",
+            "Egg bhurji + roti",
+            "Omelette + toast",
+            "Oats + peanut butter + banana",
+            "Egg sandwich",
+            "Eggs + roti + fruit",
+            "Dalia + eggs",
+            "Paneer + eggs + roti",
+            "Oats + milk + fruit",
+            "Egg bhurji + toast",
+            "Boiled eggs + banana + toast",
+            "Omelette + roti",
+            "Egg sandwich + milk"
+        ],
+
+        "Lunch": [
+            "Chicken + rice + vegetables",
+            "Chicken + roti + salad",
+            "Egg curry + rice",
+            "Chicken pulao + salad",
+            "Dal + chicken + roti",
+            "Chicken rice bowl",
+            "Egg curry + roti",
+            "Chicken + rice + dal",
+            "Chicken + roti + vegetables",
+            "Egg fried rice",
+            "Chicken pulao",
+            "Chicken + dal + rice",
+            "Egg curry + rice + salad",
+            "Chicken + roti + curd"
+        ],
+
+        "Snack": [
+            "Boiled eggs + fruit",
+            "Banana + peanuts",
+            "Curd + fruit",
+            "Peanut butter toast",
+            "Roasted chana",
+            "Egg sandwich",
+            "Milk + banana",
+            "Boiled eggs",
+            "Fruit + peanuts",
+            "Chicken sandwich",
+            "Curd + banana",
+            "Roasted chana + fruit",
+            "Eggs + toast",
+            "Milk + oats"
+        ],
+
+        "Dinner": [
+            "Chicken + roti + vegetables",
+            "Chicken + rice + salad",
+            "Egg curry + roti",
+            "Chicken pulao",
+            "Chicken + dal + rice",
+            "Chicken + roti + vegetables",
+            "Egg bhurji + roti",
+            "Chicken rice bowl",
+            "Chicken curry + rice",
+            "Egg curry + rice",
+            "Chicken + dal + roti",
+            "Chicken pulao + salad",
+            "Egg curry + roti",
+            "Chicken + rice + vegetables"
+        ]
+    }
+}
 
 # =========================================================
-# SIDEBAR NAVIGATION
+# NAVIGATION
 # =========================================================
-
-st.sidebar.title("NutriCoach")
 
 page = st.sidebar.radio(
     "Navigation",
@@ -179,6 +425,7 @@ page = st.sidebar.radio(
         "🏠 Home",
         "👤 Profile",
         "🍽️ Food",
+        "📋 Diet Plan",
         "💧 Water",
         "📊 Progress"
     ]
@@ -195,126 +442,119 @@ if page == "🏠 Home":
     if not st.session_state.profile:
 
         st.info(
-            "Welcome to NutriCoach! Start by creating your profile."
+            "Create your profile first to unlock "
+            "personalized nutrition targets."
         )
-
-        if st.button("👤 Create My Profile"):
-            st.session_state.page = "Profile"
-            st.rerun()
 
     else:
 
         profile = st.session_state.profile
         targets = profile["targets"]
 
+        calories = sum(
+            x["calories"]
+            for x in st.session_state.food_log
+        )
+
+        protein = sum(
+            x["protein"]
+            for x in st.session_state.food_log
+        )
+
+        carbs = sum(
+            x["carbs"]
+            for x in st.session_state.food_log
+        )
+
+        fat = sum(
+            x["fat"]
+            for x in st.session_state.food_log
+        )
+
+        fiber = sum(
+            x["fiber"]
+            for x in st.session_state.food_log
+        )
+
         st.subheader(
-            f"Hello! Your goal: **{profile['goal']}** 🎯"
+            f"🎯 Goal: {profile['goal']}"
         )
 
-        # Today's totals
-        total_calories = sum(
-            item["calories"]
-            for item in st.session_state.food_log
-        )
+        c1, c2, c3, c4, c5 = st.columns(5)
 
-        total_protein = sum(
-            item["protein"]
-            for item in st.session_state.food_log
-        )
-
-        total_carbs = sum(
-            item["carbs"]
-            for item in st.session_state.food_log
-        )
-
-        total_fat = sum(
-            item["fat"]
-            for item in st.session_state.food_log
-        )
-
-        total_fiber = sum(
-            item["fiber"]
-            for item in st.session_state.food_log
-        )
-
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        col1.metric(
+        c1.metric(
             "Calories",
-            f"{round(total_calories)} / {targets['calories']} kcal"
+            f"{calories:.0f} / {targets['calories']}"
         )
 
-        col2.metric(
+        c2.metric(
             "Protein",
-            f"{round(total_protein)} / {targets['protein']} g"
+            f"{protein:.1f} / {targets['protein']}g"
         )
 
-        col3.metric(
+        c3.metric(
             "Carbs",
-            f"{round(total_carbs)} / {targets['carbs']} g"
+            f"{carbs:.1f} / {targets['carbs']}g"
         )
 
-        col4.metric(
+        c4.metric(
             "Fat",
-            f"{round(total_fat)} / {targets['fat']} g"
+            f"{fat:.1f} / {targets['fat']}g"
         )
 
-        col5.metric(
+        c5.metric(
             "Fiber",
-            f"{round(total_fiber)} / {targets['fiber']} g"
+            f"{fiber:.1f} / {targets['fiber']}g"
         )
 
         st.divider()
 
-        # Progress bars
-        st.subheader("📈 Nutrition Progress")
-
-        calorie_progress = min(
-            total_calories / targets["calories"],
-            1.0
-        )
-
-        protein_progress = min(
-            total_protein / targets["protein"],
-            1.0
-        )
-
-        st.write("Calories")
-        st.progress(calorie_progress)
-
-        st.write("Protein")
-        st.progress(protein_progress)
-
-        # Water
         st.subheader("💧 Water")
 
-        water_target = targets["water"]
-        water_current = st.session_state.water
-
-        st.write(
-            f"{water_current} ml / {water_target} ml"
+        st.progress(
+            min(
+                st.session_state.water /
+                targets["water"],
+                1.0
+            )
         )
 
-        st.progress(
-            min(water_current / water_target, 1.0)
+        st.write(
+            f"{st.session_state.water} / "
+            f"{targets['water']} ml"
         )
 
         st.divider()
 
-        # Food log
-        st.subheader("🍽️ Today's Food")
+        st.subheader("🤖 NutriCoach Recommendation")
 
-        if not st.session_state.food_log:
-            st.info("No food logged yet. Go to Food → Add Food.")
+        remaining_protein = targets["protein"] - protein
+        remaining_calories = targets["calories"] - calories
+
+        if remaining_protein > 30:
+
+            st.info(
+                f"You still need approximately "
+                f"**{remaining_protein:.0f}g protein** today. "
+                "Consider eggs, curd, paneer, tofu, soy chunks, "
+                "dal or chicken depending on your diet."
+            )
+
+        elif remaining_calories > 300:
+
+            st.info(
+                f"You have approximately "
+                f"**{remaining_calories:.0f} kcal** remaining today. "
+                "Choose a balanced meal with protein, vegetables "
+                "and a carbohydrate source."
+            )
+
         else:
-            for item in st.session_state.food_log:
-                st.write(
-                    f"**{item['name']}** — "
-                    f"{item['calories']} kcal | "
-                    f"P {item['protein']}g | "
-                    f"C {item['carbs']}g | "
-                    f"F {item['fat']}g"
-                )
+
+            st.success(
+                "Your nutrition intake is getting close "
+                "to today's target. 🎉"
+            )
 
 # =========================================================
 # PROFILE
@@ -324,20 +564,15 @@ elif page == "👤 Profile":
 
     st.header("👤 Personal Profile")
 
-    st.write(
-        "Enter your information so NutriCoach can estimate "
-        "your daily nutrition targets."
-    )
-
     col1, col2 = st.columns(2)
 
     with col1:
 
         age = st.number_input(
             "Age",
-            min_value=13,
-            max_value=100,
-            value=20
+            13,
+            100,
+            20
         )
 
         sex = st.selectbox(
@@ -347,16 +582,16 @@ elif page == "👤 Profile":
 
         height = st.number_input(
             "Height (cm)",
-            min_value=100.0,
-            max_value=230.0,
-            value=170.0
+            100.0,
+            230.0,
+            170.0
         )
 
         weight = st.number_input(
             "Weight (kg)",
-            min_value=30.0,
-            max_value=250.0,
-            value=65.0
+            30.0,
+            250.0,
+            65.0
         )
 
         activity = st.selectbox(
@@ -415,7 +650,10 @@ elif page == "👤 Profile":
             ]
         )
 
-    if st.button("💾 Save Profile", type="primary"):
+    if st.button(
+        "💾 Save Profile",
+        type="primary"
+    ):
 
         targets = calculate_targets(
             age,
@@ -439,43 +677,43 @@ elif page == "👤 Profile":
             "targets": targets
         }
 
-        st.success("Profile saved successfully! 🎉")
+        st.success("Profile saved! 🎉")
 
-        st.subheader("🎯 Your Estimated Daily Targets")
+        st.subheader("🎯 Your Targets")
 
-        c1, c2, c3, c4 = st.columns(4)
+        a, b, c, d = st.columns(4)
 
-        c1.metric(
+        a.metric(
             "Calories",
             f"{targets['calories']} kcal"
         )
 
-        c2.metric(
+        b.metric(
             "Protein",
             f"{targets['protein']} g"
         )
 
-        c3.metric(
+        c.metric(
             "Carbs",
             f"{targets['carbs']} g"
         )
 
-        c4.metric(
+        d.metric(
             "Fat",
             f"{targets['fat']} g"
         )
 
         st.write(
-            f"**Fiber:** {targets['fiber']} g/day"
+            f"Fiber: **{targets['fiber']} g/day**"
         )
 
         st.write(
-            f"**Water:** approximately {targets['water']} ml/day"
+            f"Water: approximately **{targets['water']} ml/day**"
         )
 
         st.caption(
-            "These are estimates for general fitness planning, "
-            "not medical prescriptions."
+            "These values are estimates for general fitness "
+            "planning."
         )
 
 # =========================================================
@@ -484,14 +722,8 @@ elif page == "👤 Profile":
 
 elif page == "🍽️ Food":
 
-    st.header("🍽️ Food & Nutrition")
+    st.header("🍽️ Food Tracker")
 
-    st.write(
-        "Search the USDA FoodData Central database "
-        "and add foods to today's log."
-    )
-
-    # API key
     try:
         api_key = st.secrets["FDC_API_KEY"]
     except Exception:
@@ -500,26 +732,25 @@ elif page == "🍽️ Food":
     if not api_key:
 
         st.warning(
-            "USDA API key is not configured yet."
-        )
-
-        st.info(
-            "After deploying, add FDC_API_KEY in "
-            "Streamlit Cloud → App settings → Secrets."
+            "USDA API key is not configured."
         )
 
     food_name = st.text_input(
-        "🔎 Search for a food",
-        placeholder="Example: egg, rice, chicken breast, banana"
+        "🔎 Search USDA FoodData Central",
+        placeholder="egg, rice, chicken breast..."
     )
 
-    if st.button("🔍 Search USDA"):
+    if st.button("🔍 Search"):
 
         if not food_name:
-            st.warning("Please enter a food name.")
+
+            st.warning("Enter a food name.")
 
         elif not api_key:
-            st.error("USDA API key is missing.")
+
+            st.error(
+                "USDA API key is missing."
+            )
 
         else:
 
@@ -529,49 +760,38 @@ elif page == "🍽️ Food":
             )
 
             if results:
+
                 st.session_state.usda_results = results
+
                 st.success(
                     f"Found {len(results)} results."
                 )
+
             else:
+
                 st.error(
-                    "No USDA results found."
+                    "No results found."
                 )
 
-    # Results
     if "usda_results" in st.session_state:
 
         results = st.session_state.usda_results
 
-        options = []
+        options = [
+            f"{x.get('description', 'Food')} "
+            f"({x.get('dataType', '')})"
+            for x in results
+        ]
 
-        for food in results:
-
-            description = food.get(
-                "description",
-                "Unknown food"
-            )
-
-            data_type = food.get(
-                "dataType",
-                ""
-            )
-
-            options.append(
-                f"{description} ({data_type})"
-            )
-
-        selected_index = st.selectbox(
-            "Choose the exact food",
+        selected = st.selectbox(
+            "Select the exact food",
             range(len(options)),
-            format_func=lambda i: options[i]
+            format_func=lambda x: options[x]
         )
 
-        selected_food = results[selected_index]
+        food = results[selected]
 
-        nutrition = get_food_nutrition(
-            selected_food
-        )
+        nutrition = get_food_nutrition(food)
 
         st.subheader("Nutrition per 100g")
 
@@ -584,25 +804,23 @@ elif page == "🍽️ Food":
 
         c2.metric(
             "Protein",
-            f"{nutrition['protein']:.1f} g"
+            f"{nutrition['protein']:.1f}g"
         )
 
         c3.metric(
             "Carbs",
-            f"{nutrition['carbs']:.1f} g"
+            f"{nutrition['carbs']:.1f}g"
         )
 
         c4.metric(
             "Fat",
-            f"{nutrition['fat']:.1f} g"
+            f"{nutrition['fat']:.1f}g"
         )
 
         c5.metric(
             "Fiber",
-            f"{nutrition['fiber']:.1f} g"
+            f"{nutrition['fiber']:.1f}g"
         )
-
-        st.divider()
 
         quantity_type = st.radio(
             "Quantity",
@@ -614,23 +832,22 @@ elif page == "🍽️ Food":
 
             grams = st.number_input(
                 "Amount (grams)",
-                min_value=1.0,
-                value=100.0,
-                step=1.0
+                1.0,
+                5000.0,
+                100.0
             )
 
         else:
 
             pieces = st.number_input(
                 "Number of pieces",
-                min_value=1,
-                value=1,
-                step=1
+                1,
+                100,
+                1
             )
 
             food_lower = food_name.lower()
 
-            # Common approximate weights
             piece_weights = {
                 "egg": 50,
                 "banana": 118,
@@ -643,16 +860,17 @@ elif page == "🍽️ Food":
             grams_per_piece = 100
 
             for key, value in piece_weights.items():
+
                 if key in food_lower:
+
                     grams_per_piece = value
                     break
 
             grams = pieces * grams_per_piece
 
             st.info(
-                f"Using approximately {grams_per_piece}g "
-                f"per piece → {grams}g total. "
-                "You can use grams for greater accuracy."
+                f"Estimated {grams_per_piece}g per piece "
+                f"→ {grams}g total."
             )
 
         meal = st.selectbox(
@@ -670,42 +888,37 @@ elif page == "🍽️ Food":
             grams
         )
 
-        st.subheader("Estimated nutrition for your amount")
+        st.subheader("Your Amount")
 
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4 = st.columns(4)
 
         c1.metric(
             "Calories",
-            f"{scaled['calories']:.0f} kcal"
+            f"{scaled['calories']:.0f}"
         )
 
         c2.metric(
             "Protein",
-            f"{scaled['protein']:.1f} g"
+            f"{scaled['protein']:.1f}g"
         )
 
         c3.metric(
             "Carbs",
-            f"{scaled['carbs']:.1f} g"
+            f"{scaled['carbs']:.1f}g"
         )
 
         c4.metric(
             "Fat",
-            f"{scaled['fat']:.1f} g"
-        )
-
-        c5.metric(
-            "Fiber",
-            f"{scaled['fiber']:.1f} g"
+            f"{scaled['fat']:.1f}g"
         )
 
         if st.button(
-            "➕ Add Food to Today's Log",
+            "➕ Add to Today's Log",
             type="primary"
         ):
 
             st.session_state.food_log.append({
-                "name": selected_food.get(
+                "name": food.get(
                     "description",
                     food_name
                 ),
@@ -715,29 +928,20 @@ elif page == "🍽️ Food":
                 "protein": scaled["protein"],
                 "carbs": scaled["carbs"],
                 "fat": scaled["fat"],
-                "fiber": scaled["fiber"],
-                "calcium": scaled["calcium"],
-                "iron": scaled["iron"],
-                "magnesium": scaled["magnesium"],
-                "potassium": scaled["potassium"],
-                "zinc": scaled["zinc"],
-                "vitamin_a": scaled["vitamin_a"],
-                "vitamin_c": scaled["vitamin_c"],
-                "vitamin_d": scaled["vitamin_d"]
+                "fiber": scaled["fiber"]
             })
 
             st.success(
-                "Food added to today's log! ✅"
+                "Food added! ✅"
             )
 
-    # Today's food
     st.divider()
 
     st.subheader("📋 Today's Food Log")
 
     if not st.session_state.food_log:
 
-        st.info("Nothing logged yet.")
+        st.info("No food logged yet.")
 
     else:
 
@@ -745,30 +949,108 @@ elif page == "🍽️ Food":
             st.session_state.food_log
         ):
 
-            col1, col2 = st.columns([5, 1])
+            st.write(
+                f"**{item['name']}** — "
+                f"{item['meal']} — "
+                f"{item['grams']:.0f}g"
+            )
 
-            with col1:
-                st.write(
-                    f"**{item['name']}** "
-                    f"({item['meal']}, {item['grams']:.0f}g)"
+            st.caption(
+                f"{item['calories']:.0f} kcal | "
+                f"P {item['protein']:.1f}g | "
+                f"C {item['carbs']:.1f}g | "
+                f"F {item['fat']:.1f}g"
+            )
+
+            if st.button(
+                "🗑️ Remove",
+                key=f"remove_{i}"
+            ):
+
+                st.session_state.food_log.pop(i)
+                st.rerun()
+
+# =========================================================
+# 14 DAY DIET PLAN
+# =========================================================
+
+elif page == "📋 Diet Plan":
+
+    st.header("📋 14-Day Diet Plan")
+
+    if not st.session_state.profile:
+
+        st.warning(
+            "Create your profile first."
+        )
+
+    else:
+
+        profile = st.session_state.profile
+
+        diet = profile["diet"]
+        budget = profile["budget"]
+        goal = profile["goal"]
+
+        st.write(
+            f"**Goal:** {goal}  |  "
+            f"**Diet:** {diet}  |  "
+            f"**Budget:** {budget}"
+        )
+
+        st.info(
+            "Meals are examples for planning. "
+            "Portions should be adjusted to your individual "
+            "nutrition targets."
+        )
+
+        for day in range(1, 15):
+
+            st.subheader(f"📅 Day {day}")
+
+            day_number = day - 1
+
+            breakfast = MEALS[diet]["Breakfast"][
+                day_number
+            ]
+
+            lunch = MEALS[diet]["Lunch"][
+                day_number
+            ]
+
+            snack = MEALS[diet]["Snack"][
+                day_number
+            ]
+
+            dinner = MEALS[diet]["Dinner"][
+                day_number
+            ]
+
+            meals = [
+                ("Breakfast", breakfast),
+                ("Lunch", lunch),
+                ("Snack", snack),
+                ("Dinner", dinner)
+            ]
+
+            for meal_name, meal in meals:
+
+                key = f"day{day}_{meal_name}"
+
+                checked = key in st.session_state.completed_meals
+
+                new_value = st.checkbox(
+                    f"{meal_name}: {meal}",
+                    value=checked,
+                    key=key
                 )
 
-                st.caption(
-                    f"{item['calories']:.0f} kcal | "
-                    f"Protein {item['protein']:.1f}g | "
-                    f"Carbs {item['carbs']:.1f}g | "
-                    f"Fat {item['fat']:.1f}g"
-                )
+                if new_value:
+                    st.session_state.completed_meals.add(key)
+                else:
+                    st.session_state.completed_meals.discard(key)
 
-            with col2:
-
-                if st.button(
-                    "🗑️",
-                    key=f"delete_{i}"
-                ):
-
-                    st.session_state.food_log.pop(i)
-                    st.rerun()
+            st.divider()
 
 # =========================================================
 # WATER
@@ -781,8 +1063,7 @@ elif page == "💧 Water":
     if not st.session_state.profile:
 
         st.warning(
-            "Create your profile first so NutriCoach "
-            "can calculate your water target."
+            "Create your profile first."
         )
 
     else:
@@ -791,38 +1072,45 @@ elif page == "💧 Water":
             "targets"
         ]["water"]
 
-        current = st.session_state.water
+        st.metric(
+            "Daily Target",
+            f"{target} ml"
+        )
 
         st.metric(
-            "Today's Water",
-            f"{current} / {target} ml"
+            "Consumed",
+            f"{st.session_state.water} ml"
         )
 
         st.progress(
-            min(current / target, 1.0)
+            min(
+                st.session_state.water / target,
+                1.0
+            )
         )
 
         st.subheader("🥤 Add Water")
 
-        col1, col2, col3, col4 = st.columns(4)
+        c1, c2, c3, c4 = st.columns(4)
 
-        if col1.button("🥛 250 ml"):
+        if c1.button("🥛 250 ml"):
             st.session_state.water += 250
             st.rerun()
 
-        if col2.button("🥤 500 ml"):
+        if c2.button("🥤 500 ml"):
             st.session_state.water += 500
             st.rerun()
 
-        if col3.button("💧 750 ml"):
+        if c3.button("💧 750 ml"):
             st.session_state.water += 750
             st.rerun()
 
-        if col4.button("🫗 1000 ml"):
+        if c4.button("🫗 1000 ml"):
             st.session_state.water += 1000
             st.rerun()
 
-        if st.button("Reset Water"):
+        if st.button("Reset"):
+
             st.session_state.water = 0
             st.rerun()
 
@@ -835,42 +1123,42 @@ elif page == "📊 Progress":
     st.header("📊 Body Progress")
 
     st.write(
-        "Record your measurements to track your progress."
+        "Track your measurements over time."
     )
 
     weight = st.number_input(
         "Weight (kg)",
-        min_value=20.0,
-        max_value=300.0,
-        value=65.0
+        20.0,
+        300.0,
+        65.0
     )
 
     waist = st.number_input(
         "Waist (cm)",
-        min_value=30.0,
-        max_value=200.0,
-        value=80.0
+        30.0,
+        200.0,
+        80.0
     )
 
     chest = st.number_input(
         "Chest (cm)",
-        min_value=30.0,
-        max_value=200.0,
-        value=90.0
+        30.0,
+        200.0,
+        90.0
     )
 
     arms = st.number_input(
         "Arms (cm)",
-        min_value=10.0,
-        max_value=100.0,
-        value=30.0
+        10.0,
+        100.0,
+        30.0
     )
 
     legs = st.number_input(
         "Legs (cm)",
-        min_value=20.0,
-        max_value=150.0,
-        value=50.0
+        20.0,
+        150.0,
+        50.0
     )
 
     if st.button(
@@ -896,19 +1184,19 @@ elif page == "📊 Progress":
 
     if "progress" in st.session_state:
 
-        st.subheader("📋 Progress History")
+        st.subheader("History")
 
-        for entry in reversed(
+        for item in reversed(
             st.session_state.progress
         ):
 
             st.write(
-                f"**{entry['date']}** — "
-                f"Weight: {entry['weight']} kg | "
-                f"Waist: {entry['waist']} cm | "
-                f"Chest: {entry['chest']} cm | "
-                f"Arms: {entry['arms']} cm | "
-                f"Legs: {entry['legs']} cm"
+                f"**{item['date']}** | "
+                f"Weight {item['weight']} kg | "
+                f"Waist {item['waist']} cm | "
+                f"Chest {item['chest']} cm | "
+                f"Arms {item['arms']} cm | "
+                f"Legs {item['legs']} cm"
             )
 
 # =========================================================
@@ -918,7 +1206,6 @@ elif page == "📊 Progress":
 st.divider()
 
 st.caption(
-    "🥗 NutriCoach • Nutrition estimates are for general "
-    "fitness planning and should not replace professional "
-    "medical or dietary advice."
+    "🥗 NutriCoach — Nutrition estimates are intended "
+    "for general fitness planning."
 )
