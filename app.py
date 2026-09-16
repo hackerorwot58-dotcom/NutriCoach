@@ -235,10 +235,18 @@ def save_profile(profile):
     con.commit()
     con.close()
 
+# Always normalize the profile so older databases/session state cannot
+# crash the app when a newer field has been added.
 if "profile" not in st.session_state:
     st.session_state.profile = load_profile()
 
-profile = st.session_state.profile
+_raw_profile = st.session_state.get("profile") or {}
+profile = DEFAULT_PROFILE.copy()
+if isinstance(_raw_profile, dict):
+    profile.update(_raw_profile)
+
+# Keep the normalized profile in session state for the rest of the app.
+st.session_state.profile = profile
 
 # ------------------------------------------------------------
 # CALCULATIONS
@@ -17653,7 +17661,7 @@ nav = st.radio(
 # HOME / TODAY
 # ============================================================
 if nav == "🏠 Today":
-    name = profile["name"] or "there"
+    name = profile.get("name", "") or "there"
     st.subheader(f"Good day, {name} 👋")
 
     m1, m2, m3, m4 = st.columns(4)
